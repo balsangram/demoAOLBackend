@@ -271,15 +271,17 @@ export const loginUser = async (req, res) => {
       }
     } else if (phone) {
       try {
+        console.log(identifier, "phone👍");
+
         // MSG91 API request to send OTP
         const msg91Response = await axios.post(
           "https://api.msg91.com/api/v5/flow/",
           {
             flow_id: "66dfe7fed6fc052fc01f1842",
             sender: "AOLINF",
-            mobiles: "916370404471",
-            otp: otpValue, // Pass the OTP variable
+            mobiles: identifier,
             template_id: "1207172550773733867",
+            var1: otpValue,
           },
           {
             headers: {
@@ -288,6 +290,7 @@ export const loginUser = async (req, res) => {
             },
           }
         );
+
         console.log("🚀 ~ loginUser ~ msg91Response:", msg91Response.data);
 
         if (msg91Response.data.type === "success") {

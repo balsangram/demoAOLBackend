@@ -1,4 +1,5 @@
 import Group from "../../models/notification/Group.model.js";
+import Notification from "../../models/notification/Notification.model.js";
 import DeviceToken from "../../models/notification/deviceToken.model.js";
 
 // group
@@ -156,5 +157,26 @@ export const updateGroupUser = async (req, res) => {
       message: "Server error",
       error: error.message,
     });
+  }
+};
+
+export const futureNotificaton = async (req, res) => {
+  try {
+    const futureNotifications = await Notification.find({
+      NotificationTime: { $gt: new Date() },
+    }).populate("deviceTokens"); // optional: populate if you want device token details
+    console.log(
+      "🚀 ~ futureNotificaton ~ futureNotifications:",
+      futureNotifications
+    );
+
+    res.status(200).json({
+      success: true,
+      count: futureNotifications.length,
+      data: futureNotifications,
+    });
+  } catch (error) {
+    console.error("Error fetching future notifications:", error);
+    res.status(500).json({ success: false, message: "Server Error" });
   }
 };

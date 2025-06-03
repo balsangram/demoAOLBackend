@@ -9,12 +9,23 @@ import schedule from "node-schedule";
 import { log } from "node:console";
 
 function convertDateTimeFormat(input) {
-  const [datePart, timePart] = input.split(" ");
-  const [day, month, year] = datePart.split("/");
-  const [hours, minutes] = timePart.split(":");
+  // const [datePart, timePart] = input.split(" ");
+  // const [day, month, year] = datePart.split("/");
+  // const [hours, minutes] = timePart.split(":");
+  const t = new Date(input);
+  const minute = t.getMinutes();
+  const hour = t.getHours();
+  const year = t.getFullYear();
+  const month = t.getMonth() + 1;
+  const day = t.getDate();
 
-  const formatted = `${minutes}-${hours}-${day}-${month}-${year}`;
-  return formatted;
+  const dateIST = moment.tz(
+    `${year}-${month}-${day} ${hour}:${minute}`,
+    "YYYY-MM-DD HH:mm",
+    "Asia/Kolkata"
+  );
+  console.log("🚀 ~ convertDateTimeFormat ~ formatted:", dateIST);
+  return dateIST;
 }
 
 export async function scheduleNotificationWithCron(
@@ -26,16 +37,31 @@ export async function scheduleNotificationWithCron(
     console.log("came here");
 
     // Parse mm-hh-dd-MM-yyyy
-    const [minute, hour, day, month, year] = scheduleString
-      .split("-")
-      .map(Number);
-
+    // const [minute, hour, day, month, year] = scheduleString;
+    // console.log("🚀 ~ scheduleString:", scheduleString).split("-").map(Number);
+    // const t = scheduleString.split(" ");
+    // const d = t[0].split("/");
+    // const time = t[1].split(":");
+    // const minute = time[1];
+    // const hour = time[0];
+    // const year = d[2];
+    // const month = d[0];
+    // const day = d[1];
+    const t = new Date(scheduleString);
+    const minute = t.getMinutes();
+    const hour = t.getHours();
+    const year = t.getFullYear();
+    const month = t.getMonth() + 1;
+    const day = t.getDate();
     // Create a moment object in IST timezone
     const dateIST = moment.tz(
       `${year}-${month}-${day} ${hour}:${minute}`,
       "YYYY-MM-DD HH:mm",
       "Asia/Kolkata"
     );
+    console.log("🚀 ~ month:", month);
+    console.log("🚀 ~ minute:", minute);
+    console.log("🚀 ~ dateIST:", dateIST);
     console.log("👍");
 
     if (dateIST.isBefore(moment())) {
@@ -45,6 +71,7 @@ export async function scheduleNotificationWithCron(
     console.log("initial timing ; ", scheduleString);
 
     const date = dateIST.toDate(); // convert to JS Date
+    console.log("🚀 ~ dateIST:", dateIST);
     console.log("🚀 ~ date:", date);
 
     // Schedule a job
@@ -279,7 +306,7 @@ export const sendGroupNotification = async (req, res) => {
     } else {
       outputNotificationTime = convertDateTimeFormat(NotificationTime);
       console.log(tokens, "outputNotificationTime", outputNotificationTime);
-      scheduleNotificationWithCron(outputNotificationTime, message, tokens);
+      scheduleNotificationWithCron(NotificationTime, message, tokens);
     }
 
     let sentNotification = new Notification({

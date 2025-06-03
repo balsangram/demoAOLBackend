@@ -9,6 +9,11 @@ const deviceTokenSchema = new mongoose.Schema(
     country_code: { type: String, required: true },
     phone: { type: String, required: true, unique: true },
     aadhar: { type: String, required: false, default: "" },
+    staticType: [
+      {
+        type: String,
+      },
+    ],
     userTypes: [
       {
         type: mongoose.Schema.Types.ObjectId,

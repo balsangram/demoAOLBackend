@@ -33,6 +33,7 @@
     "node-schedule": "^2.1.1",
     "nodemailer": "^7.0.3",
     "seed": "^0.4.4",
+    "sendotp": "^1.2.9",
     "translate": "^3.0.1",
     "translatte": "^3.0.1"
   },

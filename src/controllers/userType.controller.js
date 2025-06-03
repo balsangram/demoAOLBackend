@@ -237,6 +237,42 @@ export const changeHomeLikeOrDislike = async (req, res) => {
     });
   }
 };
+export const changeStaticLikeOrDislike = async (req, res) => {
+  try {
+    const { id } = req.params; // DeviceToken document _id
+    const { cardId } = req.body; // The staticType string to toggle
+
+    const exist = await DeviceToken.findById(id);
+    if (!exist) {
+      return res.status(404).json({ message: "Device not found." });
+    }
+
+    const index = exist.staticType.findIndex((type) => type === cardId);
+
+    if (index === -1) {
+      // Not present, so add
+      exist.staticType.push(cardId);
+      console.log("Added to staticType:", cardId);
+    } else {
+      // Present, so remove
+      exist.staticType.splice(index, 1);
+      console.log("Removed from staticType:", cardId);
+    }
+
+    await exist.save();
+
+    return res.status(200).json({
+      message: "staticType updated successfully.",
+      data: exist,
+    });
+  } catch (error) {
+    console.error("❌ Error toggling staticType:", error);
+    return res.status(500).json({
+      message: "Internal server error.",
+      error: error.message,
+    });
+  }
+};
 
 export const changeYoutubeLikeOrDislike = async (req, res) => {
   try {

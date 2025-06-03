@@ -30,6 +30,7 @@ import {
   addUserType,
   changeHomeLikeOrDislike,
   changeLikeOrDislike,
+  changeStaticLikeOrDislike,
   deleteUserType,
   favouriteCardDisplay,
   favouriteHomeCardDisplay,
@@ -145,6 +146,7 @@ import {
 import {
   createGroupWithUser,
   deleteGroup,
+  futureNotificaton,
   // displayGroup,
   getAllGroupsWithDeviceTokens,
   updateGroupUser,
@@ -231,9 +233,11 @@ router.delete("/deleteUSerType/:id", deleteUserType);
 // favorite
 router.post("/userType_importance/:id", changeLikeOrDislike);
 router.post("/homeCard_importance/:id", changeHomeLikeOrDislike);
+router.post("/staticCard_importance/:id", changeStaticLikeOrDislike);
 
 router.get("/displayFavouriteInternal/:id", favouriteCardDisplay);
 router.get("/displayFavouriteHome/:id", favouriteHomeCardDisplay);
+// router.get("/displayFavouriteStatic/:id", favouriteStaticCardDisplay);
 
 //actions
 router.get("/displayAction/:usertype", action);
@@ -288,6 +292,8 @@ router.post("/deviceToken", saveAndSubscribeToken);
 router.get("/display_notification", displayAllNotification);
 router.get("/countDeviceTokens", countDeviceTokens);
 router.get("/displayAllUSer", displayUser);
+
+router.get("/future-notification", futureNotificaton);
 // router.patch("/logout", logoutAndUnsubscribeToken);
 
 router.get("/searchUser", searchUser);
