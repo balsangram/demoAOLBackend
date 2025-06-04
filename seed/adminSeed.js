@@ -14,14 +14,14 @@ const seedAdmin = async () => {
     await mongoose.connect(MONGO_URI);
     console.log("MongoDB connected");
 
-    const exists = await Admin.findOne({ email: "admin@example.com" });
+    const exists = await Admin.findOne({ email: "admin@gmail.com" });
     if (exists) {
       console.log("Admin already exists.");
     } else {
-      const hashedPassword = await bcrypt.hash("Admin@123", 10);
+      const hashedPassword = await bcrypt.hash("admin", 10);
       const admin = new Admin({
         name: "Super Admin",
-        email: "admin@example.com",
+        email: "admin@gmail.com",
         password: hashedPassword,
       });
 

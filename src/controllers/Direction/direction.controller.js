@@ -1,9 +1,10 @@
 import Direction from "../../models/direction/Direction.model.js";
+import { putObject } from "../../utils/aws/putObject.js";
 import { uploadToCloudinary } from "../../utils/cloudnary.js"; // Ensure this exists and works
 
 export const add_direction = async (req, res) => {
   //   console.log(req.body, "Body");
-  console.log(req.file, "File");
+  console.log(req.files, "Files");
   console.log("1");
 
   try {
@@ -30,11 +31,11 @@ export const add_direction = async (req, res) => {
       !longitude ||
       !latitude ||
       !directionusertype ||
-      !req.file
+      !req.files
     ) {
       console.log("2");
 
-      console.log("🚀 ~ constadd_direction= ~ directionImg:", directionImg);
+      // console.log("🚀 ~ constadd_direction= ~ directionImg:", directionImg);
       return res
         .status(400)
         .json({ message: "All fields are required including image" });
@@ -42,13 +43,31 @@ export const add_direction = async (req, res) => {
     // console.log("file", req.file.path);
 
     // Upload image
-    const uploadedImage = await uploadToCloudinary(
-      req.file.buffer,
-      req.file.originalname
-    );
-    console.log("🚀 ~ constadd_direction= ~ uploadedImage:", uploadedImage);
+    const uploadedFiles = [];
+    if (req.files && req.files.length > 0) {
+      try {
+        for (const file of req.files) {
+          // Use buffer directly (no temp file needed)
+          const fileBuffer = file.buffer;
 
-    const directionImg = uploadedImage.url;
+          const { url } = await putObject(
+            { data: fileBuffer, mimetype: file.mimetype },
+            `cards/${Date.now()}-${file.originalname}`
+          );
+
+          uploadedFiles.push({
+            file_name: file.originalname,
+            file_url: url,
+          });
+        }
+      } catch (error) {
+        console.log(error, "error");
+
+        // throw new ApiError(500, `File upload failed: ${error.message}`);
+        return res.status(500).json({ success: false, message: "Error" });
+      }
+    }
+    const directionImg = uploadedFiles[0].file_url;
 
     const newDirection = new Direction({
       directionName,
@@ -189,4 +208,3 @@ export const getSingelCard = async (req, res) => {
     res.status(500).json({ message: "Failed to fetch the card" });
   }
 };
-

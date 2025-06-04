@@ -1,5 +1,6 @@
 import PopUp from "../models/PopUp.js";
-import { uploadCloudinary, uploadToCloudinary } from "../utils/cloudnary.js"; // Cloudinary helper function
+import { putObject } from "../utils/aws/putObject.js";
+// import { uploadCloudinary, uploadToCloudinary } from "../utils/cloudnary.js"; // Cloudinary helper function
 
 // Add a new popup (store image in Cloudinary)
 
@@ -53,17 +54,14 @@ import { uploadCloudinary, uploadToCloudinary } from "../utils/cloudnary.js"; //
 
 export const addPopUp = async (req, res) => {
   try {
-    const file = req.file;
+    const files = req.files;
     const { liveTime } = req.body;
 
     // Validate file
-    if (!file) {
+    if (!files) {
       return res.status(400).json({ message: "Image file is required" });
     }
-    if (!file.mimetype.startsWith("image/")) {
-      return res.status(400).json({ message: "Only image files are allowed" });
-    }
-    if (file.size > 5 * 1024 * 1024) {
+    if (files.size > 5 * 1024 * 1024) {
       return res.status(400).json({ message: "Image size exceeds 5MB limit" });
     }
 
@@ -87,15 +85,34 @@ export const addPopUp = async (req, res) => {
       return res.status(400).json({ message: "Invalid date in liveTime" });
     }
 
-    // Upload to Cloudinary
-    const result = await uploadToCloudinary(file.buffer, file.originalname);
-    if (!result?.secure_url) {
-      throw new Error("Failed to upload image to Cloudinary");
+    const uploadedFiles = [];
+    if (req.files && req.files.length > 0) {
+      try {
+        for (const file of req.files) {
+          // Use buffer directly (no temp file needed)
+          const fileBuffer = file.buffer;
+
+          const { url } = await putObject(
+            { data: fileBuffer, mimetype: file.mimetype },
+            `cards/${Date.now()}-${file.originalname}`
+          );
+
+          uploadedFiles.push({
+            file_name: file.originalname,
+            file_url: url,
+          });
+        }
+      } catch (error) {
+        console.log(error, "error");
+
+        // throw new ApiError(500, `File upload failed: ${error.message}`);
+        return res.status(500).json({ success: false, message: "Error" });
+      }
     }
 
     // Save to DB
     const newPopUp = new PopUp({
-      img: result.secure_url,
+      img: uploadedFiles[0].file_url,
       liveTime: liveTimeDate,
     });
 

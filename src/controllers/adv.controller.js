@@ -2,6 +2,7 @@ import fs from "fs";
 import Advertisement from "../models/Adv.model.js";
 import { uploadCloudinary, uploadToCloudinary } from "../utils/cloudnary.js";
 import HistoryAdvertise from "../models/history/HistoryAdvertise.model.js";
+import { putObject } from "../utils/aws/putObject.js";
 
 // export const addAdvertisement = async (req, res) => {
 //   try {
@@ -121,37 +122,44 @@ import HistoryAdvertise from "../models/history/HistoryAdvertise.model.js";
 // export const addAdvertisement = async (req, res) => {
 //   try {
 //     const { img1, img2, img3 } = req.files;
-//     const { link1, link2, link3 } = req.body;
+//     const { link1, link2, link3, title1, title2, title3 } = req.body;
 
-//     // Validate files and links
 //     if (!img1 || !img2 || !img3) {
-//       return res
-//         .status(400)
-//         .json({ success: false, message: "All 3 images are required" });
+//       return res.status(400).json({
+//         success: false,
+//         message: "All 3 images are required",
+//       });
 //     }
 
 //     if (!link1 || !link2 || !link3) {
-//       return res
-//         .status(400)
-//         .json({ success: false, message: "All 3 links are required" });
+//       return res.status(400).json({
+//         success: false,
+//         message: "All 3 links are required",
+//       });
 //     }
 
-//     // Check for existing advertisements
+//     if (!title1 || !title2 || !title3) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "All 3 titles are required",
+//       });
+//     }
+
 //     const existingAds = await Advertisement.find();
 
 //     if (existingAds.length > 0) {
-//       // Store previous ads in HistoryAdvertise before deletion
 //       await HistoryAdvertise.create({
 //         archivedAds: existingAds,
 //         archivedAt: new Date(),
 //       });
 
 //       await Advertisement.deleteMany();
-//       console.log("Old advertisements archived and deleted.");
+//       console.log("Previous advertisements archived and deleted.");
 //     }
 
 //     const files = [img1[0], img2[0], img3[0]];
 //     const links = [link1, link2, link3];
+//     const titles = [title1, title2, title3];
 //     const imageData = [];
 
 //     for (let i = 0; i < files.length; i++) {
@@ -163,10 +171,10 @@ import HistoryAdvertise from "../models/history/HistoryAdvertise.model.js";
 //       imageData.push({
 //         img: uploaded.secure_url,
 //         link: links[i],
+//         title: titles[i],
 //       });
 //     }
 
-//     // Create new advertisement
 //     const newAd = await Advertisement.create({
 //       img1: imageData[0],
 //       img2: imageData[1],
@@ -180,7 +188,10 @@ import HistoryAdvertise from "../models/history/HistoryAdvertise.model.js";
 //     });
 //   } catch (error) {
 //     console.error("Upload Error:", error.message);
-//     res.status(500).json({ success: false, message: error.message });
+//     res.status(500).json({
+//       success: false,
+//       message: "Internal server error: " + error.message,
+//     });
 //   }
 // };
 
@@ -228,16 +239,26 @@ export const addAdvertisement = async (req, res) => {
     const imageData = [];
 
     for (let i = 0; i < files.length; i++) {
-      const uploaded = await uploadToCloudinary(
-        files[i].buffer,
-        files[i].originalname
-      );
+      const file = files[i];
 
-      imageData.push({
-        img: uploaded.secure_url,
-        link: links[i],
-        title: titles[i],
-      });
+      try {
+        const { url } = await putObject(
+          { data: file.buffer, mimetype: file.mimetype },
+          `ads/${Date.now()}-${file.originalname}`
+        );
+
+        imageData.push({
+          img: url,
+          link: links[i],
+          title: titles[i],
+        });
+      } catch (error) {
+        console.error("AWS S3 Upload Error:", error);
+        return res.status(500).json({
+          success: false,
+          message: "Failed to upload image to AWS S3.",
+        });
+      }
     }
 
     const newAd = await Advertisement.create({

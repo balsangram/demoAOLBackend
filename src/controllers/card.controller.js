@@ -2,7 +2,10 @@ import Card from "../models/Card.model.js";
 // import Card from "../models/translate/Card.model.js";
 import HomeCard from "../models/HomeCard.model.js";
 import { uploadCloudinary, uploadToCloudinary } from "../utils/cloudnary.js";
+import { putObject } from "../utils/aws/putObject.js";
 import translateText from "../utils/translation.js";
+import fs from "fs";
+import path from "path";
 
 // searchCard
 
@@ -55,93 +58,47 @@ export const showAllCards = async (req, res) => {
 };
 
 // Create Card
-// export const createCard = async (req, res) => {
-//   try {
-//     // console.log(req.file, "card file show");
-//     const file = req.file;
-//     console.log(file, "file");
-
-//     if (!file) {
-//       return res.status(400).json({ message: "No file uploaded." });
-//     }
-//     console.log(file, "file");
-
-//     const { name, link, headline } = req.body;
-//     const result = await uploadToCloudinary(file.buffer, file.originalname);
-
-//     console.log("imageUplode", result);
-
-//     console.log("req", req.file.img);
-
-//     const existingCard = await Card.findOne({ name });
-//     if (existingCard) {
-//       return res.status(400).json({ message: "Card name already exists" });
-//     }
-
-//     const translations = {
-//       en: name,
-//       hi: await translateText(name, "hi"),
-//       kn: await translateText(name, "kn"),
-//       ta: await translateText(name, "ta"),
-//       te: await translateText(name, "te"),
-//       gu: await translateText(name, "gu"),
-//       mr: await translateText(name, "mr"),
-//       ml: await translateText(name, "ml"),
-//       pa: await translateText(name, "pa"),
-//       bn: await translateText(name, "bn"),
-//       ru: await translateText(name, "ru"),
-//       es: await translateText(name, "es"),
-//       zh: await translateText(name, "zh"),
-//       mn: await translateText(name, "mn"),
-//       pl: await translateText(name, "pl"),
-//       bg: await translateText(name, "bg"),
-//       fr: await translateText(name, "fr"),
-//       de: await translateText(name, "de"),
-//       nl: await translateText(name, "nl"),
-//       it: await translateText(name, "it"),
-//       pt: await translateText(name, "pt"),
-//       ja: await translateText(name, "ja"),
-//       vi: await translateText(name, "vi"),
-//     };
-//     console.log(translations, "translations");
-
-//     const newCard = new Card({
-//       name: translations,
-//       link,
-//       headline,
-//       img: result.secure_url,
-//     });
-
-//     await newCard.save();
-//     res.status(201).json({ message: "Card created successfully", newCard });
-//   } catch (error) {
-//     res.status(400).json({ message: error.message });
-//   }
-// };
 
 export const createCard = async (req, res) => {
   try {
-    // console.log(req.file, "card file show");
-    const file = req.file;
-    console.log(file, "file");
+    const files = req.files;
 
-    if (!file) {
+    if (!files) {
       return res.status(400).json({ message: "No file uploaded." });
     }
-    console.log(file, "file");
-
     const { name, link, headline } = req.body;
-    const result = await uploadToCloudinary(file.buffer, file.originalname);
+    const uploadedFiles = [];
+    if (req.files && req.files.length > 0) {
+      try {
+        for (const file of req.files) {
+          // Use buffer directly (no temp file needed)
+          const fileBuffer = file.buffer;
 
-    console.log("imageUplode", result);
+          const { url } = await putObject(
+            { data: fileBuffer, mimetype: file.mimetype },
+            `cards/${Date.now()}-${file.originalname}`
+          );
 
-    console.log("req", req.file.img);
-
+          uploadedFiles.push({
+            file_name: file.originalname,
+            file_url: url,
+          });
+        }
+      } catch (error) {
+        // throw new ApiError(500, `File upload failed: ${error.message}`);
+        return res.status(500).json({ success: false, message: "Error" });
+      }
+    }
     const existingCard = await Card.findOne({ name });
     if (existingCard) {
       return res.status(400).json({ message: "Card name already exists" });
     }
-    const newCard = new Card({ name, link, headline, img: result.secure_url });
+    const newCard = new Card({
+      name,
+      link,
+      headline,
+      img: uploadedFiles[0].file_url,
+    });
     console.log(newCard, "newcard");
 
     await newCard.save();
@@ -188,46 +145,6 @@ export const updateCard = async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 };
-
-// export const updateCard = async (req, res) => {
-//   try {
-//     const { id } = req.params;
-//     console.log(req.params, "id");
-
-//     const { name, link } = req.body;
-//     console.log(req.body, "req.body");
-
-//     let imageUrl = null;
-
-//     if (req.file) {
-//       const result = await uploadToCloudinary(file.buffer, file.originalname);
-
-//       // const imageUpload = await uploadCloudinary(req.file.path);
-//       // imageUrl = imageUpload.url; // Assuming Cloudinary returns an object with a `url` field
-
-//     }
-
-//     const updateData = { name, link };
-//     if (imageUrl) {
-//       updateData.img = imageUrl; // Updating image only if a new file is uploaded
-//     }
-
-//     const updatedCard = await Card.findByIdAndUpdate(id, updateData, {
-//       new: true,
-//     });
-
-//     console.log(updatedCard, "updatedCard");
-
-//     if (!updatedCard) {
-//       return res.status(404).json({ message: "Card not found" });
-//     }
-
-//     res.status(200).json({ message: "Card updated successfully", updatedCard });
-//   } catch (error) {
-//     console.error("Error updating card:", error);
-//     res.status(400).json({ message: error.message });
-//   }
-// };
 
 // Delete Card
 export const removeCard = async (req, res) => {

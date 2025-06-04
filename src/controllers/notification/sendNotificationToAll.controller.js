@@ -372,6 +372,7 @@ export const sendSingleNotification = async (req, res) => {
     const notification = new Notification({
       title,
       body,
+      selectedIds,
       NotificationTime,
       deviceTokens: userTokenDocs.map((doc) => doc._id),
     });

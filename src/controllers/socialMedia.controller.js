@@ -1,4 +1,5 @@
 import socialMediaSchema from "../models/footerSocialMedia.Model.js";
+import { putObject } from "../utils/aws/putObject.js";
 import { uploadToCloudinary } from "../utils/cloudnary.js"; // Adjust the path
 export const displayAllSocialMedia = async (req, res) => {
   try {
@@ -19,24 +20,42 @@ export const addSocialMedia = async (req, res) => {
     const { mediaName, mediaLink } = req.body;
     console.log(req.body, "body");
 
-    const mediaImage = req.file;
+    const mediaImage = req.files;
     console.log(mediaImage, "mediaImage");
 
     if (!mediaImage) {
       return res.status(400).json({ message: "Image file is required." });
     }
 
-    // Upload to Cloudinary
-    const uploadResult = await uploadToCloudinary(
-      mediaImage.buffer,
-      mediaImage.originalname
-    );
+    const uploadedFiles = [];
+    if (req.files && req.files.length > 0) {
+      try {
+        for (const file of req.files) {
+          // Use buffer directly (no temp file needed)
+          const fileBuffer = file.buffer;
 
+          const { url } = await putObject(
+            { data: fileBuffer, mimetype: file.mimetype },
+            `cards/${Date.now()}-${file.originalname}`
+          );
+
+          uploadedFiles.push({
+            file_name: file.originalname,
+            file_url: url,
+          });
+        }
+      } catch (error) {
+        console.log(error, "error");
+
+        // throw new ApiError(500, `File upload failed: ${error.message}`);
+        return res.status(500).json({ success: false, message: "Error" });
+      }
+    }
     // Save to DB
     const newSocialMedia = new socialMediaSchema({
       mediaName,
       mediaLink,
-      mediaImage: uploadResult.secure_url,
+      mediaImage: uploadedFiles[0].file_url,
     });
 
     await newSocialMedia.save();

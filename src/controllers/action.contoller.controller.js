@@ -1,4 +1,5 @@
 import Action from "../models/Action.model.js";
+import { putObject } from "../utils/aws/putObject.js";
 // import Action from "../models/translate/Action.model.js";
 // import Action from "../models/translate/Action.model.js";
 import { uploadCloudinary, uploadToCloudinary } from "../utils/cloudnary.js";
@@ -29,114 +30,50 @@ export const action = async (req, res) => {
   }
 };
 
-// export const addAction = async (req, res) => {
-//   try {
-//     console.log("Received request file:", req.file);
-//     console.log("req body", req.body);
-
-//     let imageUrl = null;
-//     if (req.file) {
-//       const imageUpload = await uploadCloudinary(req.file.path);
-//       imageUrl = imageUpload.secure_url;
-//     }
-
-//     let data = req.body;
-//     if (!Array.isArray(data)) {
-//       data = [data];
-//     }
-
-//     const translatedData = await Promise.all(
-//       data.map(async (item) => {
-//         const actionText = item.action;
-
-//         // Validate individual fields
-//         if (!item.usertype || !item.action || !item.link) {
-//           throw new Error("Missing required fields (usertype, action, link).");
-//         }
-
-//         const translations = {
-//           en: actionText,
-//           hi: await translateText(actionText, "hi"),
-//           kn: await translateText(actionText, "kn"),
-//           ta: await translateText(actionText, "ta"),
-//           te: await translateText(actionText, "te"),
-//           gu: await translateText(actionText, "gu"),
-//           mr: await translateText(actionText, "mr"),
-//           ml: await translateText(actionText, "ml"),
-//           pa: await translateText(actionText, "pa"),
-//           bn: await translateText(actionText, "bn"),
-//           ru: await translateText(actionText, "ru"),
-//           es: await translateText(actionText, "es"),
-//           zh: await translateText(actionText, "zh"),
-//           mn: await translateText(actionText, "mn"),
-//           pl: await translateText(actionText, "pl"),
-//           bg: await translateText(actionText, "bg"),
-//           fr: await translateText(actionText, "fr"),
-//           de: await translateText(actionText, "de"),
-//           nl: await translateText(actionText, "nl"),
-//           it: await translateText(actionText, "it"),
-//           pt: await translateText(actionText, "pt"),
-//           ja: await translateText(actionText, "ja"),
-//           vi: await translateText(actionText, "vi"),
-//         };
-
-//         return {
-//           usertype: item.usertype,
-//           action: translations, // Save the whole translation object
-//           link: item.link,
-//           img: imageUrl,
-//         };
-//       })
-//     );
-
-//     const newActions = await Action.insertMany(translatedData);
-//     console.log("Inserted Actions:", newActions);
-
-//     res.status(201).json({
-//       message: "Actions added successfully",
-//       actions: newActions,
-//     });
-//   } catch (error) {
-//     console.error("Error adding action:", error);
-//     res.status(500).json({ message: error.message });
-//   }
-// };
-
 export const addAction = async (req, res) => {
   try {
-    const file = req.file;
-
-    console.log("Received files:", file);
+    const files = req.files;
+    console.log("Received files:", files);
     console.log("Received body:", req.body);
 
-    let imageUrl = null;
+    const uploadedFiles = [];
 
-    // Handle single image upload (assuming only one image is sent)
-    const imageFile = req.files?.find((file) => file.fieldname === "img");
-    if (imageFile) {
-      const imageUpload = await uploadToCloudinary(
-        imageFile.buffer,
-        imageFile.originalname
-      );
-      imageUrl = imageUpload.secure_url;
+    if (files && files.length > 0) {
+      try {
+        for (const file of files) {
+          const fileBuffer = file.buffer;
+          const { url } = await putObject(
+            { data: fileBuffer, mimetype: file.mimetype },
+            `cards/${Date.now()}-${file.originalname}`
+          );
+          uploadedFiles.push({
+            file_name: file.originalname,
+            file_url: url,
+          });
+        }
+      } catch (error) {
+        console.error("File upload error:", error);
+        return res
+          .status(500)
+          .json({ success: false, message: "File upload failed" });
+      }
     }
 
     let data = req.body;
 
-    // If sent as JSON or application/x-www-form-urlencoded, convert it into array manually
+    // If data is a single object (e.g., from Postman or form), convert it to array
     if (!Array.isArray(data)) {
       data = [data];
     }
 
-    // Ensure all properties exist and map them
-    const formattedData = data.map((item) => ({
+    // Ensure all entries have required fields
+    const formattedData = data.map((item, index) => ({
       usertype: item.usertype,
       action: item.action,
       link: item.link,
-      img: imageUrl,
+      img: uploadedFiles[index] ? uploadedFiles[index].file_url : null,
     }));
 
-    // Validate data
     const isValid = formattedData.every(
       (item) => item.usertype && item.action && item.link
     );
@@ -155,7 +92,7 @@ export const addAction = async (req, res) => {
     });
   } catch (error) {
     console.error("Error adding action:", error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: "Internal Server Error" });
   }
 };
 
@@ -163,7 +100,7 @@ export const updateAction = async (req, res) => {
   try {
     const { id } = req.params;
     const { usertype, language, action, link } = req.body;
-    const file = req.file;
+    const files = req.file;
     console.log(file, "req.file");
 
     const existingAction = await Action.findById(id);

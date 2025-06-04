@@ -193,6 +193,8 @@ router.post("/userRegister", registerUser);
 router.delete("/userDelete/:id", deleteUser);
 router.get("/getdetails/:id", userDetails);
 router.patch("/updateUserDetails/:id", updateDetails);
+
+// user auth
 router.post("/OTPCheck/:id", OTPCheck);
 router.patch("/logout", logoutuser);
 
@@ -212,21 +214,21 @@ router.get("/displayHeading", displayHeadlines);
 //containers
 router.get("/showAllCards/:headline", showAllCards);
 // router.post("/createCard", upload_V2.single("img"), createCard);
-router.post("/createCard", upload_V2.single("img"), createCard);
+router.post("/createCard", upload_V2.array("img"), createCard); //👍
 router.patch("/updateCard/:id", upload_V2.single("img"), updateCard);
 router.delete("/removeCard/:id", removeCard);
 router.get("/card_search", cardSearch);
 
-router.get("/displayHomeCard", displayHomeCard);
-router.post("/createHomeCard", upload_V2.single("img"), addHomeCard);
-router.patch("/updateHomeCCard/:id", upload_V2.single("img"), updateHomeCard);
-router.delete("/removeHomeCard/:id", removeHomeCard);
+// router.get("/displayHomeCard", displayHomeCard);
+// router.post("/createHomeCard", upload_V2.array("img"), addHomeCard);
+// router.patch("/updateHomeCCard/:id", upload_V2.single("img"), updateHomeCard);
+// router.delete("/removeHomeCard/:id", removeHomeCard);
 
 //user Types
 router.get("/userType", userType);
 router.get("/userType/:id", singleuserType);
 router.get("/userTypeHome/:id", singleHomeuserType);
-router.post("/addUserType", upload_V2.single("img"), addUserType);
+router.post("/addUserType", upload_V2.array("img"), addUserType); //👍
 router.patch("/updateUSerType/:id", upload_V2.single("img"), updateUserType);
 router.delete("/deleteUSerType/:id", deleteUserType);
 
@@ -241,12 +243,12 @@ router.get("/displayFavouriteHome/:id", favouriteHomeCardDisplay);
 
 //actions
 router.get("/displayAction/:usertype", action);
-router.post("/addAction", upload_V2.any(), addAction);
+router.post("/addAction", upload_V2.array("img"), addAction); //👍
 router.patch("/updateAction/:id", upload_V2.single("img"), updateAction);
 router.delete("/deleteAction/:id", deleteAction);
 
 // YouTube Link
-router.post("/addYoutubeLinks", upload_V2.single("thumbnail"), addYoutubeLinks);
+router.post("/addYoutubeLinks", upload_V2.array("thumbnail"), addYoutubeLinks); //👍
 router.get("/displayMobYoutubeLinks", showMobileYoutubeLinks);
 router.get("/displayWebYoutubeLinks", showWebYoutubeLinks);
 router.patch(
@@ -265,7 +267,7 @@ router.post(
     { name: "img3", maxCount: 1 },
   ]),
   addAdvertisement
-);
+); //👍
 router.get("/advertisement_history", displayHistoryOfAdvertisement);
 // router.post(
 //   "/addAdv",
@@ -281,7 +283,7 @@ router.post("/sos", addSOSNumber);
 router.get("/sos/latest", getLastSOSNumber);
 
 //pop-up
-router.post("/addPopUp", upload_V2.single("img"), addPopUp);
+router.post("/addPopUp", upload_V2.array("img"), addPopUp); //👍
 router.get("/displayPopUp", displayPopUp);
 router.get("/displayAllPopUp", displayAllPopUp);
 
@@ -325,7 +327,7 @@ router.get("/displayHistoryOfLive", displayHistoryOfLive);
 // footer  =====
 // social media handel
 router.get("/social_media", displayAllSocialMedia);
-router.post("/social_media", upload_V2.single("mediaImage"), addSocialMedia);
+router.post("/social_media", upload_V2.array("mediaImage"), addSocialMedia); //👍
 router.patch(
   "/social_media/:id",
   upload_V2.single("mediaImage"),
@@ -342,9 +344,9 @@ router.get("/footer_Drop", displayFooterDrop);
 router.get("/contact_with_us", displayAllContactWithUS);
 router.post(
   "/contact_with_us",
-  upload_V2.single("contactImage"),
+  upload_V2.array("contactImage"),
   addContactWithUS
-);
+); //👍
 router.patch(
   "/contact_with_us/:id",
   upload_V2.single("contactImage"),
@@ -354,7 +356,7 @@ router.delete("/contact_with_us/:id", deleteContactWithUS);
 
 // OnBoarding images
 router.get("/display_On_Boarding", displayOnBoarding);
-router.post("/add_On_Boarding", upload_V2.single("img"), addOnBoarding);
+router.post("/add_On_Boarding", upload_V2.array("img"), addOnBoarding); //👍
 
 // translate
 
@@ -374,7 +376,7 @@ router.get("/display_live_date_time_language/:language", get_LiveNewUpdates);
 
 // direction
 router.get("/display_direction", get_direction);
-router.post("/add_direction", upload_V2.single("directionImg"), add_direction);
+router.post("/add_direction", upload_V2.array("directionImg"), add_direction); // 👍
 router.patch(
   "/update_direction/:id",
   upload_V2.single("directionImg"),

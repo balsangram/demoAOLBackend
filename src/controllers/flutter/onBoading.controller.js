@@ -1,4 +1,5 @@
 import OnBoarding from "../../models/flutter/OnBording.model.js";
+import { putObject } from "../../utils/aws/putObject.js";
 import { uploadToCloudinary } from "../../utils/cloudnary.js"; // adjust to your utility path
 
 export const displayOnBoarding = async (req, res) => {
@@ -24,22 +25,42 @@ export const displayOnBoarding = async (req, res) => {
 export const addOnBoarding = async (req, res) => {
   try {
     // const { title, body } = req.body;
-    const file = req.file;
+    const files = req.files;
 
-    if (!file) {
+    if (!files) {
       return res.status(400).json({
         success: false,
         message: "Image are all required.",
       });
     }
 
-    const uploadedImage = await uploadToCloudinary(
-      file.buffer,
-      file.originalname
-    );
+    const uploadedFiles = [];
+    if (req.files && req.files.length > 0) {
+      try {
+        for (const file of req.files) {
+          // Use buffer directly (no temp file needed)
+          const fileBuffer = file.buffer;
+
+          const { url } = await putObject(
+            { data: fileBuffer, mimetype: file.mimetype },
+            `cards/${Date.now()}-${file.originalname}`
+          );
+
+          uploadedFiles.push({
+            file_name: file.originalname,
+            file_url: url,
+          });
+        }
+      } catch (error) {
+        console.log(error, "error");
+
+        // throw new ApiError(500, `File upload failed: ${error.message}`);
+        return res.status(500).json({ success: false, message: "Error" });
+      }
+    }
 
     const newOnBoarding = await OnBoarding.create({
-      img: uploadedImage.secure_url,
+      img: uploadedFiles[0].file_url,
       //   title,
       //   body,
     });

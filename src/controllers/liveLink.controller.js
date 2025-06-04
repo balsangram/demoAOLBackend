@@ -122,7 +122,7 @@ export const displayLiveLink = async (req, res) => {
 
 export const addLiveLink = async (req, res) => {
   try {
-    console.log(req.body, "body");
+    // console.log(req.body, "body");
 
     // Step 1: Fetch all existing live links before deletion
     const existingLinks = await LiveLink.find({});
@@ -175,10 +175,11 @@ export const addLiveLink = async (req, res) => {
 
     // Step 6: Validate liveTime if provided
     const liveDate = new Date(liveTime);
+
     if (isNaN(liveDate.getTime())) {
       return res.status(400).json({ message: "Invalid liveTime format" });
     }
-
+  
     if (liveDate <= new Date()) {
       return res
         .status(400)
@@ -196,9 +197,11 @@ export const addLiveLink = async (req, res) => {
     // Step 8: Schedule cron job to update isLive
     const job = new CronJob(liveDate, async () => {
       try {
+        console.log("done  ⌚");
+
         const updated = await LiveLink.findByIdAndUpdate(
           savedLink._id,
-          { isLive: true },
+          { isLive: true }, 
           { new: true }
         );
         console.log("Live link is now live:", updated);

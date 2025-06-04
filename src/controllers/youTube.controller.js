@@ -1,4 +1,5 @@
 import YouTube from "../models/Youtube.model.js";
+import { putObject } from "../utils/aws/putObject.js";
 import { uploadCloudinary, uploadToCloudinary } from "../utils/cloudnary.js";
 export const showMobileYoutubeLinks = async (req, res) => {
   try {
@@ -16,22 +17,43 @@ export const showMobileYoutubeLinks = async (req, res) => {
 
 export const addYoutubeLinks = async (req, res) => {
   try {
-    const file = req.file;
+    const files = req.files;
     const { YouTubeLink, platform, thumbnailName } = req.body;
     console.log("🚀 ~ addYoutubeLinks ~ req.body:", req.body);
 
-    if (!file) {
+    if (!files) {
       return res.status(400).json({ message: "No file uploaded." });
     }
 
-    // Upload image to Cloudinary
-    const result = await uploadToCloudinary(file.buffer, file.originalname);
+    const uploadedFiles = [];
+    if (req.files && req.files.length > 0) {
+      try {
+        for (const file of req.files) {
+          // Use buffer directly (no temp file needed)
+          const fileBuffer = file.buffer;
 
+          const { url } = await putObject(
+            { data: fileBuffer, mimetype: file.mimetype },
+            `cards/${Date.now()}-${file.originalname}`
+          );
+
+          uploadedFiles.push({
+            file_name: file.originalname,
+            file_url: url,
+          });
+        }
+      } catch (error) {
+        console.log(error, "error");
+
+        // throw new ApiError(500, `File upload failed: ${error.message}`);
+        return res.status(500).json({ success: false, message: "Error" });
+      }
+    }
     // Create new YouTube document
     const newLink = new YouTube({
       YouTubeLink,
       platform,
-      thumbnail: result.secure_url,
+      thumbnail: uploadedFiles[0].file_url,
       thumbnailName,
     });
 

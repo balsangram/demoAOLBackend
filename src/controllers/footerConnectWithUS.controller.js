@@ -1,4 +1,5 @@
 import ContactWithUs from "../models/footerConnectWithUS.model.js";
+import { putObject } from "../utils/aws/putObject.js";
 import { uploadToCloudinary } from "../utils/cloudnary.js";
 
 export const displayAllContactWithUS = async (req, res) => {
@@ -16,23 +17,43 @@ export const displayAllContactWithUS = async (req, res) => {
 
 export const addContactWithUS = async (req, res) => {
   try {
-    console.log(req.file, "file");
+    console.log(req.files, "files");
     const { contactName, contactLink } = req.body;
-    const contactImage = req.file;
+    const contactImage = req.files;
 
     if (!contactImage) {
       return res.status(400).json({ message: "Image file is required." });
     }
 
-    const uploadResult = await uploadToCloudinary(
-      contactImage.buffer,
-      contactImage.originalname
-    );
+    const uploadedFiles = [];
+    if (req.files && req.files.length > 0) {
+      try {
+        for (const file of req.files) {
+          // Use buffer directly (no temp file needed)
+          const fileBuffer = file.buffer;
+
+          const { url } = await putObject(
+            { data: fileBuffer, mimetype: file.mimetype },
+            `cards/${Date.now()}-${file.originalname}`
+          );
+
+          uploadedFiles.push({
+            file_name: file.originalname,
+            file_url: url,
+          });
+        }
+      } catch (error) {
+        console.log(error, "error");
+
+        // throw new ApiError(500, `File upload failed: ${error.message}`);
+        return res.status(500).json({ success: false, message: "Error" });
+      }
+    }
 
     const newContact = new ContactWithUs({
       contactName,
       contactLink,
-      contactImage: uploadResult.secure_url,
+      contactImage: uploadedFiles[0].file_url,
       typeName: contactName,
     });
 

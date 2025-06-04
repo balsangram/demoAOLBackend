@@ -4,6 +4,7 @@ import { uploadCloudinary, uploadToCloudinary } from "../utils/cloudnary.js";
 import DeviceToken from "../models/notification/deviceToken.model.js";
 import Card from "../models/Card.model.js";
 import YouTube from "../models/Youtube.model.js";
+import { putObject } from "../utils/aws/putObject.js";
 // import { parse } from "dotenv";
 // Show All Cards
 export const userType = async (req, res) => {
@@ -15,64 +16,55 @@ export const userType = async (req, res) => {
   }
 };
 
-// export const addUserType = async (req, res) => {
-//   try {
-//     console.log(req.file, "file uplode");
-//     console.log(req.body, "body");
-
-//     const { usertype } = req.body;
-//     const imageUplode = await uploadCloudinary(req.file.path);
-//     console.log("imageUplode", imageUplode);
-
-//     console.log(req.body);
-//     // Check if the user type already exists
-//     const existingUserType = await UserType.findOne({ usertype });
-//     if (existingUserType) {
-//       return res.status(400).json({ message: "Type name already exists" });
-//     }
-
-//     // Create new user type
-//     const newUserType = new UserType({ usertype, img: imageUplode.img });
-//     await newUserType.save();
-
-//     console.log(newUserType, "newUserType");
-
-//     res.status(201).json(newUserType); // ✅ Return the saved user type
-//   } catch (error) {
-//     res.status(500).json({ message: error.message });
-//   }
-// };
-
 export const addUserType = async (req, res) => {
   try {
-    const file = req.file;
-    console.log(file, "file");
+    const files = req.files;
+    console.log(files, "files", req.body);
 
-    if (!file) {
+    if (!files) {
       return res.status(400).json({ message: "No file uploaded." });
     }
-    console.log(file, "file");
+    // console.log(files, "files");
 
-    const { usertype, headline } = req.body;
-    const result = await uploadToCloudinary(file.buffer, file.originalname);
+    const { usertype } = req.body;
 
-    console.log("imageUplode", result);
+    const uploadedFiles = [];
+    if (req.files && req.files.length > 0) {
+      try {
+        for (const file of req.files) {
+          // Use buffer directly (no temp file needed)
+          const fileBuffer = file.buffer;
 
-    console.log("req", req.file.img);
+          const { url } = await putObject(
+            { data: fileBuffer, mimetype: file.mimetype },
+            `cards/${Date.now()}-${file.originalname}`
+          );
+
+          uploadedFiles.push({
+            file_name: file.originalname,
+            file_url: url,
+          });
+        }
+      } catch (error) {
+        console.log(error, "error");
+
+        // throw new ApiError(500, `File upload failed: ${error.message}`);
+        return res.status(500).json({ success: false, message: "Error" });
+      }
+    }
 
     const existingCard = await UserType.findOne({ usertype });
     if (existingCard) {
       return res.status(400).json({ message: "Card name already exists" });
     }
-    const newCard = new UserType({
+    const newUserType = new UserType({
       usertype,
-      headline,
-      img: result.secure_url,
+      img: uploadedFiles[0].file_url,
     });
-    console.log(newCard, "newcard");
+    console.log(newUserType, "newcard");
 
-    await newCard.save();
-    res.status(201).json({ message: "Card created successfully", newCard });
+    await newUserType.save();
+    res.status(201).json({ message: "Card created successfully", newUserType });
   } catch (error) {
     console.error("addUserType error:", error);
     res.status(500).json({ message: "Internal Server Error" });
