@@ -145,7 +145,9 @@ export const updateUserType = async (req, res) => {
 
     const existingUserType = await UserType.findById(id).lean();
     if (!existingUserType) {
-      return res.status(404).json({ message: `UserType with ID ${id} not found` });
+      return res
+        .status(404)
+        .json({ message: `UserType with ID ${id} not found` });
     }
 
     // Delete old image from S3 if a new image is uploaded
@@ -181,17 +183,19 @@ export const updateUserType = async (req, res) => {
     );
 
     if (!updatedUserType) {
-      return res.status(404).json({ message: "UserType not found after update" });
+      return res
+        .status(404)
+        .json({ message: "UserType not found after update" });
     }
 
-    res.status(200).json({ message: "Updated successfully", data: updatedUserType });
-
+    res
+      .status(200)
+      .json({ message: "Updated successfully", data: updatedUserType });
   } catch (error) {
     console.error("Update error:", error);
     res.status(500).json({ message: error.message });
   }
 };
-
 
 export const deleteUserType = async (req, res) => {
   try {

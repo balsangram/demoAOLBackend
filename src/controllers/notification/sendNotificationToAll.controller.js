@@ -175,14 +175,16 @@ export const sendNotificationToAll = async (req, res) => {
       body,
       status: "sent",
       sentAt: nowTime,
+      NotificationTime: NotificationTime || nowTime,
     });
+
     if (now < nowTime) {
       const job = new CronJob(
         cronTime,
         async function () {
           console.log("inside the cron job to sedn notification to all api");
           await admin.messaging().send(message);
-          await sentNotification.save();
+          // await sentNotification.save();
           job.stop();
         },
         null,
@@ -191,20 +193,25 @@ export const sendNotificationToAll = async (req, res) => {
       );
     } else {
       await admin.messaging().send(message);
-      await sentNotification.save();
-    }
-    // console.log("🚀 ~ sendNotificationToAll ~ job:", job);
-    let scheduledNotification = null;
-    if (nowTime > now) {
-      scheduledNotification = new Notification({
-        title,
-        body,
-        NotificationTime: nowTime,
-        status: "scheduled",
-      });
-      await scheduledNotification.save();
+      // await sentNotification.save();
     }
 
+    // await sentNotification.save();
+    // // console.log("🚀 ~ sendNotificationToAll ~ job:", job);
+    // let scheduledNotification = null;
+    // if (nowTime > now) {
+    //   scheduledNotification = new Notification({
+    //     title,
+    //     body,
+    //     NotificationTime: nowTime,
+    //     status: "scheduled",
+    //   });
+    //   console.log("👍");
+
+    //   await scheduledNotification.save();
+    // }
+
+    await sentNotification.save();
     // Return response
     const istFormatter = new Intl.DateTimeFormat("en-IN", {
       timeZone: "Asia/Kolkata",
@@ -220,9 +227,10 @@ export const sendNotificationToAll = async (req, res) => {
       message: "Notification scheduled successfully.",
       scheduledTimeIST: istFormatter.format(nowTime),
       currentTimeIST: istFormatter.format(now),
-      notification: scheduledNotification
-        ? scheduledNotification
-        : sentNotification,
+      notification: sentNotification,
+      // notification: scheduledNotification
+      //   ? scheduledNotification
+      //   : sentNotification,
     });
   } catch (error) {
     console.error("❌ Error processing notification:", error);
@@ -315,11 +323,12 @@ export const sendGroupNotification = async (req, res) => {
       status: "sent",
       sentAt: outputNotificationTime,
     });
-
+    await sentNotification.save();
     res.status(200).json({
       message: "Notification scheduled successfully.",
       // scheduledTimeIST: istFormatter.format(nowTime),
       // currentTimeIST: istFormatter.format(now),
+      notification: sentNotification,
       // notification: scheduledNotification
       //   ? scheduledNotification
       //   : sentNotification,
@@ -368,14 +377,16 @@ export const sendSingleNotification = async (req, res) => {
         message: "No valid device tokens found for the provided IDs.",
       });
     }
+    console.log(NotificationTime, "NotificationTime ⌚");
 
     const notification = new Notification({
       title,
       body,
       selectedIds,
-      NotificationTime,
+      NotificationTime: NotificationTime || Date.now(),
       deviceTokens: userTokenDocs.map((doc) => doc._id),
     });
+
     await notification.save();
     console.log("✅ Notification saved:", notification);
 
@@ -453,77 +464,6 @@ export const sendSingleNotification = async (req, res) => {
   }
 };
 
-// export const saveAndSubscribeToken = async (req, res) => {
-//   const { token, username, email, phone } = req.body;
-//   console.log("🚀 ~ saveAndSubscribeToken ~ req.body:", req.body)
-
-//   // Validate input
-//   if (!token || typeof token !== "string") {
-//     return res.status(400).json({ message: "Valid device token is required." });
-//   }
-//   try {
-//     // Subscribe token to the 'all' topic first
-//     const response = await admin.messaging().subscribeToTopic(token, "all");
-//     if (!response || response.failureCount > 0) {
-//       const errorInfo =
-//         response.errors?.[0]?.error ||
-//         "Unknown error while subscribing to topic.";
-//       console.log("FCM Subscription Error:");
-
-//       return res.status(400).json({
-//         message: "Failed to subscribe token to topic 'all'.",
-//         error: errorInfo,
-//       });
-//     }
-
-//     console.log("Token subscribed to 'all' topic 📡:", response);
-
-//     // Save token to DB if it doesn't already exist
-//     const existing = await DeviceToken.findOne({ token });
-
-//     if (!existing) {
-//       console.log(username, "userName");
-//       await DeviceToken.create({ token, username, phone, email });
-//       console.log("Token saved to DB ✅");
-//     } else {
-//       console.log("Token already exists in DB 🔁");
-//     }
-
-//     const UserDetails = await DeviceToken.findOne({ token });
-//     console.log(
-//       "🚀 ~ saveAndSubscribeToken ~ existing:",
-//       UserDetails,
-//       !UserDetails
-//     );
-//     // Success Response
-//     res.status(200).json({
-//       message: "Token saved and subscribed to topic 'all' successfully.",
-//       firebaseResponse: response,
-//       UserDetails,
-//     });
-//   } catch (error) {
-//     // Specific error handling
-//     console.log("Error in saveAndSubscribeToken:", error);
-
-//     // Handle Firebase errors
-//     if (error.code && error.message) {
-//       return res.status(500).json({
-//         message: "Firebase error occurred while subscribing token.",
-//         error: {
-//           code: error.code,
-//           message: error.message,
-//         },
-//       });
-//     }
-
-//     // Handle DB or unknown server errors
-//     res.status(500).json({
-//       message: "Internal server error occurred while processing token.",
-//       error: error.message || "Unexpected error",
-//     });
-//   }
-// };
-
 export const saveAndSubscribeToken = async (req, res) => {
   const { token, id } = req.body;
   console.log("🚀 ~ saveAndSubscribeToken ~ req.body:", req.body);
@@ -587,35 +527,6 @@ export const saveAndSubscribeToken = async (req, res) => {
     });
   }
 };
-
-// export const displayAllNotification = async (req, res) => {
-//   try {
-//     const notifications = await Notification.find()
-//       .sort({ createdAt: -1 })
-//       .limit(5) // ✅ Limit to 20 results
-//       .lean();
-
-//     const formatted = notifications.map((n) => {
-//       const istTime = moment(n.createdAt).tz("Asia/Kolkata");
-
-//       return {
-//         ...n,
-//         dateTime: istTime.format("DD-MM-YYYY HH:mm:ss"), // Updated format
-//       };
-//     });
-
-//     const now = new Date();
-//     console.log("Current time:", now.toLocaleString());
-
-//     console.log(formatted, "formatted");
-//     res.status(200).json(formatted);
-//   } catch (error) {
-//     console.log(error);
-//     res.status(500).json({ message: "Something went wrong" });
-//   }
-// };
-
-// Better naming if you are counting device tokens
 
 export const displayAllNotification = async (req, res) => {
   try {
@@ -720,82 +631,6 @@ export const displayUser = async (req, res) => {
     res.status(500).json({ message: "Failed to fetch device tokens" });
   }
 };
-
-// export const getUserNotifications = async (req, res) => {
-//   const { deviceId } = req.params;
-//   console.log("📱 Received deviceId:", deviceId);
-//  const now = new Date();
-//   try {
-//     const device = await DeviceToken.findOne({ _id: deviceId.trim() });
-//     if (!device) {
-//       return res.status(404).json({ message: "Device not registered." });
-//     }
-//     // console.log("🚀 ~ getUserNotifications ~ device:", device);
-
-//     const deviceCreatedAt = device.createdAt;
-//     // console.log(
-//     //   "🚀 ~ getUserNotifications ~ deviceCreatedAt:",
-//     //   deviceCreatedAt
-//     // );
-//     const notifications = await Notification.find({
-//       createdAt: { $gte: deviceCreatedAt },
-//     })
-//       .sort({ createdAt: -1 })
-//       .limit(15) // ✅ Limit to 20 results
-//       .lean();
-//     // console.log("🚀 ~ getUserNotifications ~ notifications:", notifications);
-
-//     const filteredNotifications = notifications.filter((notification) => {
-//       console.log(
-//         "🚀 ~ filteredNotifications ~ notification.deviceTokens.length:",
-//         notification.deviceTokens.length
-//       );
-//       console.log(
-//         "🚀 ~ filteredNotifications ~ notification.deviceTokens:",
-//         notification.deviceTokens
-//       );
-//       if (!notification.deviceTokens || notification.deviceTokens.length == 0) {
-//         return true;
-//       }
-
-//       return notification.deviceTokens.some(
-//         (token) => token.toString() === deviceId.toString()
-//       );
-//     });
-
-//     console.log(
-//       "🚀 ~ getUserNotifications ~ filteredNotifications:",
-//       filteredNotifications
-//     );
-
-//     const formattedNotifications = filteredNotifications.map((notification) => {
-//       const createdAtIST = moment(notification.createdAt).tz("Asia/Kolkata");
-//       const updatedAtIST = moment(notification.updatedAt).tz("Asia/Kolkata");
-
-//       return {
-//         _id: notification._id,
-//         title: notification.title,
-//         body: notification.body,
-//         deviceTokens: notification.deviceTokens,
-//         createdAt: createdAtIST.format("DD-MM-YYYY HH:mm:ss"),
-//         updatedAt: updatedAtIST.format("DD-MM-YYYY HH:mm:ss"),
-//       };
-//     });
-
-//     return res.status(200).json({
-//       message: formattedNotifications.length
-//         ? "Notifications fetched successfully."
-//         : "No new notifications found.",
-//       data: formattedNotifications,
-//     });
-//   } catch (error) {
-//     console.error("❌ Error fetching notifications:", error);
-//     return res.status(500).json({
-//       message: "Server error while fetching notifications.",
-//       error: error.message,
-//     });
-//   }
-// };
 
 export const getUserNotifications = async (req, res) => {
   const { deviceId } = req.params;
