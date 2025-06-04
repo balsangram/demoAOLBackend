@@ -5,6 +5,7 @@ import DeviceToken from "../models/notification/deviceToken.model.js";
 import Card from "../models/Card.model.js";
 import YouTube from "../models/Youtube.model.js";
 import { putObject } from "../utils/aws/putObject.js";
+import { deleteObject } from "../utils/aws/deleteObject.js";
 // import { parse } from "dotenv";
 // Show All Cards
 export const userType = async (req, res) => {
@@ -38,6 +39,7 @@ export const addUserType = async (req, res) => {
           const { url } = await putObject(
             { data: fileBuffer, mimetype: file.mimetype },
             `cards/${Date.now()}-${file.originalname}`
+            // `internal-login-cards/${Date.now()}-${file.originalname}`
           );
 
           uploadedFiles.push({
@@ -71,29 +73,125 @@ export const addUserType = async (req, res) => {
   }
 };
 
+// export const updateUserType = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+//     console.log(id, "id");
+
+//     const { usertype } = req.body;
+//     console.log(usertype, "userType", req.files);
+
+//     const existingWorkOrder = await UserType.findById(id).lean();
+//     if (!existingWorkOrder) {
+//       return res.status(404).json({ message: `Card with ID ${id} not found` });
+//     }
+
+//     // Delete old image from S3 if a new one is being uploaded
+//     if (req.files && req.files.length > 0 && existingWorkOrder.img) {
+//       const urlParts = existingWorkOrder.img.split("cards/");
+//       // const urlParts = existingWorkOrder.img.split("internal-login-cards/");
+//       console.log("🚀 ~ updateCard ~ urlParts:", urlParts);
+//       if (urlParts.length > 1) {
+//         const key = `cards/${urlParts[1]}`; // FIXED LINE
+//         // const key = `internal-login-cards/${urlParts[1]}`; // FIXED LINE
+//         await deleteObject(key); // Delete previous image
+//         console.log("🚀 ~ updateCard ~ key:", key);
+//       } else {
+//         console.warn("Invalid image URL format:", existingWorkOrder.img);
+//       }
+//     }
+
+//     let imageUrl = null;
+
+//     // Upload new image and get URL
+//     if (req.files && req.files.length > 0) {
+//       const file = req.files[0]; // Assuming only 1 image per card
+//       const { buffer, mimetype, originalname } = file;
+
+//       const { url } = await putObject(
+//         { data: buffer, mimetype },
+//         `cards/${Date.now()}-${originalname}`
+//         // `internal-login-cards/${Date.now()}-${originalname}`
+//       );
+
+//       imageUrl = url;
+//     }
+
+//     const isUserType = await UserType.findByIdAndUpdate(
+//       id,
+//       { usertype },
+//       { new: true }
+//     );
+//     if (!isUserType) {
+//       console.log(isUserType, "isUserType");
+
+//       return res.status(404).json({ message: "file not found" });
+//     }
+//     res.status(200).json({ message: "updated sucessafully", isUserType });
+//   } catch (error) {
+//     console.log(error, "error");
+
+//     res.status(500).json({ message: error.message });
+//   }
+// };
+
 export const updateUserType = async (req, res) => {
   try {
     const { id } = req.params;
-    console.log(id, "id");
+    console.log("UserType ID:", id);
 
     const { usertype } = req.body;
-    console.log(usertype, "userType");
+    console.log("usertype:", usertype, "Files:", req.files);
 
-    const isUserType = await UserType.findByIdAndUpdate(
+    const existingUserType = await UserType.findById(id).lean();
+    if (!existingUserType) {
+      return res.status(404).json({ message: `UserType with ID ${id} not found` });
+    }
+
+    // Delete old image from S3 if a new image is uploaded
+    if (req.files && req.files.length > 0 && existingUserType.img) {
+      const urlParts = existingUserType.img.split("cards/");
+      if (urlParts.length > 1) {
+        const key = `cards/${urlParts[1]}`;
+        await deleteObject(key); // Assuming this is your helper function to delete from S3
+        console.log("Deleted old image from S3:", key);
+      } else {
+        console.warn("Invalid image URL format:", existingUserType.img);
+      }
+    }
+
+    let imageUrl = existingUserType.img; // Preserve existing image if no new one is uploaded
+
+    // Upload new image if provided
+    if (req.files && req.files.length > 0) {
+      const file = req.files[0];
+      const { buffer, mimetype, originalname } = file;
+      const { url } = await putObject(
+        { data: buffer, mimetype },
+        `cards/${Date.now()}-${originalname}`
+      );
+      imageUrl = url;
+    }
+
+    // Update UserType document
+    const updatedUserType = await UserType.findByIdAndUpdate(
       id,
-      { usertype },
+      { usertype, img: imageUrl },
       { new: true }
     );
-    if (!isUserType) {
-      console.log(isUserType, "isUserType");
 
-      return res.status(404).json({ message: "file not found" });
+    if (!updatedUserType) {
+      return res.status(404).json({ message: "UserType not found after update" });
     }
-    res.status(200).json({ message: "updated sucessafully", isUserType });
+
+    res.status(200).json({ message: "Updated successfully", data: updatedUserType });
+
   } catch (error) {
+    console.error("Update error:", error);
     res.status(500).json({ message: error.message });
   }
 };
+
 
 export const deleteUserType = async (req, res) => {
   try {

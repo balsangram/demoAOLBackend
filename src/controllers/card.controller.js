@@ -6,6 +6,7 @@ import { putObject } from "../utils/aws/putObject.js";
 import translateText from "../utils/translation.js";
 import fs from "fs";
 import path from "path";
+import { deleteObject } from "../utils/aws/deleteObject.js";
 
 // searchCard
 
@@ -111,21 +112,42 @@ export const createCard = async (req, res) => {
 export const updateCard = async (req, res) => {
   try {
     const { id } = req.params;
-    console.log(req.params, "id");
-
     const { name, link } = req.body;
-    console.log(req.body, "req.body");
+
+    const existingWorkOrder = await Card.findById(id).lean();
+    if (!existingWorkOrder) {
+      return res.status(404).json({ message: `Card with ID ${id} not found` });
+    }
+
+    // Delete old image from S3 if a new one is being uploaded
+    if (req.files && req.files.length > 0 && existingWorkOrder.img) {
+      const urlParts = existingWorkOrder.img.split("cards/");
+      console.log("🚀 ~ updateCard ~ urlParts:", urlParts);
+      if (urlParts.length > 1) {
+        const key = `cards/${urlParts[1]}`; // FIXED LINE
+        await deleteObject(key); // Delete previous image
+        console.log("🚀 ~ updateCard ~ key:", key);
+      } else {
+        console.warn("Invalid image URL format:", existingWorkOrder.img);
+      }
+    }
 
     let imageUrl = null;
 
-    if (req.file) {
-      const result = await uploadToCloudinary(
-        req.file.buffer,
-        req.file.originalname
-      ); // ✅ Corrected this line
-      imageUrl = result.secure_url; // ✅ Make sure this matches your Cloudinary response
+    // Upload new image and get URL
+    if (req.files && req.files.length > 0) {
+      const file = req.files[0]; // Assuming only 1 image per card
+      const { buffer, mimetype, originalname } = file;
+
+      const { url } = await putObject(
+        { data: buffer, mimetype },
+        `cards/${Date.now()}-${originalname}`
+      );
+
+      imageUrl = url;
     }
 
+    // Prepare update data
     const updateData = { name, link };
     if (imageUrl) {
       updateData.img = imageUrl;
@@ -136,7 +158,7 @@ export const updateCard = async (req, res) => {
     });
 
     if (!updatedCard) {
-      return res.status(404).json({ message: "Card not found" });
+      return res.status(404).json({ message: "Card not found after update" });
     }
 
     res.status(200).json({ message: "Card updated successfully", updatedCard });

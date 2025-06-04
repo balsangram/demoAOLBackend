@@ -214,8 +214,8 @@ router.get("/displayHeading", displayHeadlines);
 //containers
 router.get("/showAllCards/:headline", showAllCards);
 // router.post("/createCard", upload_V2.single("img"), createCard);
-router.post("/createCard", upload_V2.array("img"), createCard); //👍
-router.patch("/updateCard/:id", upload_V2.single("img"), updateCard);
+router.post("/createCard", upload_V2.array("img"), createCard); //😊
+router.patch("/updateCard/:id", upload_V2.array("img"), updateCard); //😊
 router.delete("/removeCard/:id", removeCard);
 router.get("/card_search", cardSearch);
 
@@ -229,7 +229,7 @@ router.get("/userType", userType);
 router.get("/userType/:id", singleuserType);
 router.get("/userTypeHome/:id", singleHomeuserType);
 router.post("/addUserType", upload_V2.array("img"), addUserType); //👍
-router.patch("/updateUSerType/:id", upload_V2.single("img"), updateUserType);
+router.patch("/updateUSerType/:id", upload_V2.array("img"), updateUserType); //👍
 router.delete("/deleteUSerType/:id", deleteUserType);
 
 // favorite
@@ -243,8 +243,8 @@ router.get("/displayFavouriteHome/:id", favouriteHomeCardDisplay);
 
 //actions
 router.get("/displayAction/:usertype", action);
-router.post("/addAction", upload_V2.array("img"), addAction); //👍
-router.patch("/updateAction/:id", upload_V2.single("img"), updateAction);
+router.post("/addAction", upload_V2.array("img"), addAction); //
+router.patch("/updateAction/:id", upload_V2.array("img"), updateAction); //👍
 router.delete("/deleteAction/:id", deleteAction);
 
 // YouTube Link
@@ -330,9 +330,9 @@ router.get("/social_media", displayAllSocialMedia);
 router.post("/social_media", upload_V2.array("mediaImage"), addSocialMedia); //👍
 router.patch(
   "/social_media/:id",
-  upload_V2.single("mediaImage"),
+  upload_V2.array("mediaImage"),
   updateSocialMedia
-);
+); //👍
 router.delete("/social_media/:id", deleteSocialMedia);
 // contact with us
 
@@ -351,7 +351,7 @@ router.patch(
   "/contact_with_us/:id",
   upload_V2.single("contactImage"),
   updateContactWithUS
-);
+);   //
 router.delete("/contact_with_us/:id", deleteContactWithUS);
 
 // OnBoarding images

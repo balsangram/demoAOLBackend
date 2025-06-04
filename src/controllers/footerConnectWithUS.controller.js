@@ -1,4 +1,5 @@
 import ContactWithUs from "../models/footerConnectWithUS.model.js";
+import { deleteObject } from "../utils/aws/deleteObject.js";
 import { putObject } from "../utils/aws/putObject.js";
 import { uploadToCloudinary } from "../utils/cloudnary.js";
 
@@ -69,11 +70,65 @@ export const addContactWithUS = async (req, res) => {
   }
 };
 
+// export const updateContactWithUS = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+//     const { contactName, contactLink } = req.body;
+//     const contactImage = req.file;
+
+//     const existing = await ContactWithUs.findById(id);
+//     if (!existing) {
+//       return res.status(404).json({ message: "Contact entry not found." });
+//     }
+
+//     if (contactName) existing.contactName = contactName;
+//     if (contactLink) existing.contactLink = contactLink;
+
+//     // Delete old image from S3 if a new one is uploaded
+//     if (req.files && req.files.length > 0 && existingWorkOrder.mediaImage) {
+//       const urlParts = existingWorkOrder.mediaImage.split("cards/");
+//       if (urlParts.length > 1) {
+//         const key = `cards/${urlParts[1]}`;
+//         await deleteObject(key);
+//       } else {
+//         console.warn("Invalid image URL format:", existingWorkOrder.mediaImage);
+//       }
+//     }
+
+//     // Upload new image if available
+//     if (req.files && req.files.length > 0) {
+//       const file = req.files[0];
+//       const { buffer, mimetype, originalname } = file;
+
+//       const { url } = await putObject(
+//         { data: buffer, mimetype },
+//         `cards/${Date.now()}-${originalname}`
+//       );
+
+//       existingWorkOrder.mediaImage = url; // ✅ Save the new image URL
+//     }
+
+//     // Save the updated document
+//     await existingWorkOrder.save(); // ✅ Save changes to DB
+
+//     res.status(200).json({
+//       message: "Contact entry updated successfully.",
+//       data: existing,
+//     });
+//   } catch (error) {
+//     console.error("Update error:", error);
+//     res.status(500).json({ error: "Failed to update contact entry." });
+//   }
+// };
+
 export const updateContactWithUS = async (req, res) => {
   try {
     const { id } = req.params;
     const { contactName, contactLink } = req.body;
-    const contactImage = req.file;
+    // You destructured req.file as contactImage but later using req.files and existingWorkOrder
+    // Let's consistently use req.files for multiple files or req.file for single file
+    // Assuming single file upload here:
+    const contactImageFile = req.file;
 
     const existing = await ContactWithUs.findById(id);
     if (!existing) {
@@ -83,14 +138,31 @@ export const updateContactWithUS = async (req, res) => {
     if (contactName) existing.contactName = contactName;
     if (contactLink) existing.contactLink = contactLink;
 
-    if (contactImage) {
-      const uploadResult = await uploadToCloudinary(
-        contactImage.buffer,
-        contactImage.originalname
-      );
-      existing.contactImage = uploadResult.secure_url;
+    // Delete old image from S3 if a new one is uploaded
+    // Use 'existing' instead of 'existingWorkOrder' for variable consistency
+    if (contactImageFile && existing.contactImage) {
+      const urlParts = existing.contactImage.split("cards/");
+      if (urlParts.length > 1) {
+        const key = `cards/${urlParts[1]}`;
+        await deleteObject(key);
+      } else {
+        console.warn("Invalid image URL format:", existing.contactImage);
+      }
     }
 
+    // Upload new image if available
+    if (contactImageFile) {
+      const { buffer, mimetype, originalname } = contactImageFile;
+
+      const { url } = await putObject(
+        { data: buffer, mimetype },
+        `cards/${Date.now()}-${originalname}`
+      );
+
+      existing.contactImage = url; // Save new image URL
+    }
+
+    // Save changes
     await existing.save();
 
     res.status(200).json({

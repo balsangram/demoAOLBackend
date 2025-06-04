@@ -1,4 +1,5 @@
 import Action from "../models/Action.model.js";
+import { deleteObject } from "../utils/aws/deleteObject.js";
 import { putObject } from "../utils/aws/putObject.js";
 // import Action from "../models/translate/Action.model.js";
 // import Action from "../models/translate/Action.model.js";
@@ -100,37 +101,43 @@ export const updateAction = async (req, res) => {
   try {
     const { id } = req.params;
     const { usertype, language, action, link } = req.body;
-    const files = req.file;
-    console.log(file, "req.file");
+    const files = req.files;
+    console.log(files, "req.file");
 
     const existingAction = await Action.findById(id);
     if (!existingAction) {
       return res.status(404).json({ message: "Action not found" });
     }
 
-    let imageUrl = existingAction.img; // Retain old image by default
+    // Delete old image from S3 if a new image is uploaded
+    if (req.files && req.files.length > 0 && existingAction.img) {
+      const urlParts = existingAction.img.split("cards/");
+      if (urlParts.length > 1) {
+        const key = `cards/${urlParts[1]}`;
+        await deleteObject(key); // Assuming this is your helper function to delete from S3
+        console.log("Deleted old image from S3:", key);
+      } else {
+        console.warn("Invalid image URL format:", existingAction.img);
+      }
+    }
 
-    if (req.file) {
-      const result = await uploadToCloudinary(
-        req.file.buffer,
-        req.file.originalname
-      ); // ✅ Corrected this line
-      imageUrl = result.secure_url; // ✅ Make sure this matches your Cloudinary response
+    let imageUrl = existingAction.img; // Preserve existing image if no new one is uploaded
+
+    // Upload new image if provided
+    if (req.files && req.files.length > 0) {
+      const file = req.files[0];
+      const { buffer, mimetype, originalname } = file;
+      const { url } = await putObject(
+        { data: buffer, mimetype },
+        `cards/${Date.now()}-${originalname}`
+      );
+      imageUrl = url;
     }
 
     // If a new image is uploaded, process it
     if (req.file?.path) {
       try {
         console.log("Received Image:", req.file);
-
-        // Upload to Cloudinary
-        // const imageUpload = await uploadCloudinary(req.file.path);
-        // imageUrl = imageUpload.secure_url;
-        const result = await uploadToCloudinary(
-          req.file.buffer,
-          req.file.originalname
-        ); // ✅ Corrected this line
-        imageUrl = result.secure_url;
 
         // Optional: If you want to delete the old image from Cloudinary
         // if (existingAction.img) await deleteCloudinaryImage(existingAction.img);

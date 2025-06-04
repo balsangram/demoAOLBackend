@@ -26,7 +26,7 @@ app.use("/aol", router);
 // liveLinkJob.start();
 // jobNotification.start();
 // popupCronJob.start();
-console.log("🚀 Popup cron job started");
+// console.log("🚀 Popup cron job started");
 
 // app.use('/cards', verifyToken, cardRoutes);
 // app.use('/cards',cardRoutes);
