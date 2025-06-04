@@ -254,7 +254,7 @@ export const loginUser = async (req, res) => {
       {
         type,
         identifier,
-        otp: otpValue || 12345,
+        otp: otpValue || 123456,
         expiresAt,
       },
       { upsert: true, new: true }
