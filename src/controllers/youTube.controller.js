@@ -34,7 +34,7 @@ export const addYoutubeLinks = async (req, res) => {
 
           const { url } = await putObject(
             { data: fileBuffer, mimetype: file.mimetype },
-            `cards/${Date.now()}-${file.originalname}`
+            `youtube-cards/${Date.now()}-${file.originalname}`
           );
 
           uploadedFiles.push({

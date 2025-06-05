@@ -244,7 +244,7 @@ export const addAdvertisement = async (req, res) => {
       try {
         const { url } = await putObject(
           { data: file.buffer, mimetype: file.mimetype },
-          `ads/${Date.now()}-${file.originalname}`
+          `advertisement/${Date.now()}-${file.originalname}`
         );
 
         imageData.push({

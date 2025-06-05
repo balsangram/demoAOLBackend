@@ -38,7 +38,7 @@ export const addUserType = async (req, res) => {
 
           const { url } = await putObject(
             { data: fileBuffer, mimetype: file.mimetype },
-            `cards/${Date.now()}-${file.originalname}`
+            `aol-login-cards/${Date.now()}-${file.originalname}`
             // `internal-login-cards/${Date.now()}-${file.originalname}`
           );
 
@@ -154,7 +154,7 @@ export const updateUserType = async (req, res) => {
     if (req.files && req.files.length > 0 && existingUserType.img) {
       const urlParts = existingUserType.img.split("cards/");
       if (urlParts.length > 1) {
-        const key = `cards/${urlParts[1]}`;
+        const key = `aol-login-cards/${urlParts[1]}`;
         await deleteObject(key); // Assuming this is your helper function to delete from S3
         console.log("Deleted old image from S3:", key);
       } else {
@@ -170,7 +170,7 @@ export const updateUserType = async (req, res) => {
       const { buffer, mimetype, originalname } = file;
       const { url } = await putObject(
         { data: buffer, mimetype },
-        `cards/${Date.now()}-${originalname}`
+        `aol-login-cards/${Date.now()}-${originalname}`
       );
       imageUrl = url;
     }

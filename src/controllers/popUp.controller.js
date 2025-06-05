@@ -94,7 +94,7 @@ export const addPopUp = async (req, res) => {
 
           const { url } = await putObject(
             { data: fileBuffer, mimetype: file.mimetype },
-            `cards/${Date.now()}-${file.originalname}`
+            `popup-cards/${Date.now()}-${file.originalname}`
           );
 
           uploadedFiles.push({

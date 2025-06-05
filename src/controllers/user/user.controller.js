@@ -348,7 +348,7 @@ export const registerUser = async (req, res) => {
     console.log("🚀 ~ registerUser ~ req.body:", req.body);
 
     // Check required fields
-    if (!first_name || !last_name || !country_code || !email || !phone) {
+    if (!first_name || !country_code || !email || !phone) {
       return res
         .status(400)
         .json({ message: "All required fields must be provided ." });

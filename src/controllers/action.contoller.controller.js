@@ -45,7 +45,7 @@ export const addAction = async (req, res) => {
           const fileBuffer = file.buffer;
           const { url } = await putObject(
             { data: fileBuffer, mimetype: file.mimetype },
-            `cards/${Date.now()}-${file.originalname}`
+            `action-cards/${Date.now()}-${file.originalname}`
           );
           uploadedFiles.push({
             file_name: file.originalname,
@@ -113,7 +113,7 @@ export const updateAction = async (req, res) => {
     if (req.files && req.files.length > 0 && existingAction.img) {
       const urlParts = existingAction.img.split("cards/");
       if (urlParts.length > 1) {
-        const key = `cards/${urlParts[1]}`;
+        const key = `action-cards/${urlParts[1]}`;
         await deleteObject(key); // Assuming this is your helper function to delete from S3
         console.log("Deleted old image from S3:", key);
       } else {
@@ -129,7 +129,7 @@ export const updateAction = async (req, res) => {
       const { buffer, mimetype, originalname } = file;
       const { url } = await putObject(
         { data: buffer, mimetype },
-        `cards/${Date.now()}-${originalname}`
+        `action-cards/${Date.now()}-${originalname}`
       );
       imageUrl = url;
     }

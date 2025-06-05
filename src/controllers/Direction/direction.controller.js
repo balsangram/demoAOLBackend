@@ -1,4 +1,5 @@
 import Direction from "../../models/direction/Direction.model.js";
+import { deleteObject } from "../../utils/aws/deleteObject.js";
 import { putObject } from "../../utils/aws/putObject.js";
 import { uploadToCloudinary } from "../../utils/cloudnary.js"; // Ensure this exists and works
 
@@ -52,7 +53,7 @@ export const add_direction = async (req, res) => {
 
           const { url } = await putObject(
             { data: fileBuffer, mimetype: file.mimetype },
-            `cards/${Date.now()}-${file.originalname}`
+            `direction-img/${Date.now()}-${file.originalname}`
           );
 
           uploadedFiles.push({
@@ -100,28 +101,103 @@ export const get_direction = async (req, res) => {
   }
 };
 
+// export const update_direction = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+//     const { directionName, directionDescription, longitude, latitude } =
+//       req.body;
+
+//     let updatedFields = {
+//       directionName,
+//       directionDescription,
+//       longitude,
+//       latitude,
+//     };
+
+//     // If a new image is provided, upload to Cloudinary
+//     if (req.file) {
+//       const uploadedImage = await uploadToCloudinary(
+//         req.file.buffer,
+//         req.file.originalname
+//       );
+//       updatedFields.directionImg = uploadedImage.url;
+//     }
+
+//     const updatedDirection = await Direction.findByIdAndUpdate(
+//       id,
+//       updatedFields,
+//       {
+//         new: true,
+//         runValidators: true,
+//       }
+//     );
+
+//     if (!updatedDirection) {
+//       return res.status(404).json({ message: "Direction not found" });
+//     }
+
+//     res.status(200).json({
+//       message: "Direction updated successfully",
+//       data: updatedDirection,
+//     });
+//   } catch (error) {
+//     res.status(500).json({ message: "Failed to update direction", error });
+//   }
+// };
+
 export const update_direction = async (req, res) => {
   try {
     const { id } = req.params;
-    const { directionName, directionDescription, longitude, latitude } =
-      req.body;
+    const {
+      directionImg,
+      directionName,
+      directionDescription,
+      longitude,
+      latitude,
+    } = req.body;
 
-    let updatedFields = {
+    // Find the existing direction entry first
+    const existingDirection = await Direction.findById(id);
+    if (!existingDirection) {
+      return res.status(404).json({ message: "Direction not found" });
+    }
+
+    // Prepare updated fields
+    const updatedFields = {
+      directionImg,
       directionName,
       directionDescription,
       longitude,
       latitude,
     };
 
-    // If a new image is provided, upload to Cloudinary
-    if (req.file) {
-      const uploadedImage = await uploadToCloudinary(
-        req.file.buffer,
-        req.file.originalname
-      );
-      updatedFields.directionImg = uploadedImage.url;
+    // Handle old image deletion if a new file is uploaded
+    if (req.files && req.files.length > 0 && existingDirection.img) {
+      const urlParts = existingDirection.img.split("direction-img/");
+      if (urlParts.length > 1) {
+        const key = `direction-img/${urlParts[1]}`;
+        await deleteObject(key);
+        console.log("Old image deleted:", key);
+      } else {
+        console.warn("Invalid image URL format:", existingDirection.img);
+      }
     }
 
+    // Upload new image if provided
+    if (req.files && req.files.length > 0) {
+      const file = req.files[0];
+      const { buffer, mimetype, originalname } = file;
+
+      const { url } = await putObject(
+        { data: buffer, mimetype },
+        `direction-img/${Date.now()}-${originalname}`
+      );
+      console.log("urlllll", url);
+
+      updatedFields.directionImg = url; // Add image URL to fields
+    }
+
+    // Update document in DB
     const updatedDirection = await Direction.findByIdAndUpdate(
       id,
       updatedFields,
@@ -131,16 +207,15 @@ export const update_direction = async (req, res) => {
       }
     );
 
-    if (!updatedDirection) {
-      return res.status(404).json({ message: "Direction not found" });
-    }
-
     res.status(200).json({
       message: "Direction updated successfully",
       data: updatedDirection,
     });
   } catch (error) {
-    res.status(500).json({ message: "Failed to update direction", error });
+    console.error("Error in update_direction:", error);
+    res
+      .status(500)
+      .json({ message: "Failed to update direction", error: error.message });
   }
 };
 

@@ -38,7 +38,7 @@ export const addSocialMedia = async (req, res) => {
 
           const { url } = await putObject(
             { data: fileBuffer, mimetype: file.mimetype },
-            `cards/${Date.now()}-${file.originalname}`
+            `SocialMedia-icons/${Date.now()}-${file.originalname}`
           );
 
           uploadedFiles.push({
@@ -94,9 +94,9 @@ export const updateSocialMedia = async (req, res) => {
 
     // Delete old image from S3 if a new one is uploaded
     if (req.files && req.files.length > 0 && existingWorkOrder.mediaImage) {
-      const urlParts = existingWorkOrder.mediaImage.split("cards/");
+      const urlParts = existingWorkOrder.mediaImage.split("SocialMedia-icons/");
       if (urlParts.length > 1) {
-        const key = `cards/${urlParts[1]}`;
+        const key = `SocialMedia-icons/${urlParts[1]}`;
         await deleteObject(key);
       } else {
         console.warn("Invalid image URL format:", existingWorkOrder.mediaImage);
@@ -110,7 +110,7 @@ export const updateSocialMedia = async (req, res) => {
 
       const { url } = await putObject(
         { data: buffer, mimetype },
-        `cards/${Date.now()}-${originalname}`
+        `SocialMedia-icons/${Date.now()}-${originalname}`
       );
 
       existingWorkOrder.mediaImage = url; // ✅ Save the new image URL

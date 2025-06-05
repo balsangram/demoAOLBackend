@@ -32,12 +32,13 @@ const groupSchema = new mongoose.Schema(
     groupName: {
       type: String, // For group-specific notifications
       required: false,
+      unique: true,
     },
     deviceTokens: [
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "DeviceToken",
-      },  
+      },
     ],
   },
   {

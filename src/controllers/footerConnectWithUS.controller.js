@@ -35,7 +35,7 @@ export const addContactWithUS = async (req, res) => {
 
           const { url } = await putObject(
             { data: fileBuffer, mimetype: file.mimetype },
-            `cards/${Date.now()}-${file.originalname}`
+            `ContactUS-icon/${Date.now()}-${file.originalname}`
           );
 
           uploadedFiles.push({
@@ -141,9 +141,9 @@ export const updateContactWithUS = async (req, res) => {
     // Delete old image from S3 if a new one is uploaded
     // Use 'existing' instead of 'existingWorkOrder' for variable consistency
     if (contactImageFile && existing.contactImage) {
-      const urlParts = existing.contactImage.split("cards/");
+      const urlParts = existing.contactImage.split("ContactUS-icon/");
       if (urlParts.length > 1) {
-        const key = `cards/${urlParts[1]}`;
+        const key = `ContactUS-icon/${urlParts[1]}`;
         await deleteObject(key);
       } else {
         console.warn("Invalid image URL format:", existing.contactImage);
@@ -156,7 +156,7 @@ export const updateContactWithUS = async (req, res) => {
 
       const { url } = await putObject(
         { data: buffer, mimetype },
-        `cards/${Date.now()}-${originalname}`
+        `ContactUS-icon/${Date.now()}-${originalname}`
       );
 
       existing.contactImage = url; // Save new image URL

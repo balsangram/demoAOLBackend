@@ -43,7 +43,7 @@ export const addOnBoarding = async (req, res) => {
 
           const { url } = await putObject(
             { data: fileBuffer, mimetype: file.mimetype },
-            `cards/${Date.now()}-${file.originalname}`
+            `OnBoarding-img/${Date.now()}-${file.originalname}`
           );
 
           uploadedFiles.push({

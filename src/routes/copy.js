@@ -1,13 +1,30 @@
 import express from "express";
+import { upload } from "../middleware/multer.middleware.js";
 import { loginAdmin, registerAdmin } from "../controllers/admin.controller.js";
-import { displayHeadlines } from "../controllers/head.controller.js";
 import {
+  deleteCustomer,
+  loginCustomer,
+  registerCustomer,
+  updateCustomer,
+} from "../controllers/customer.controller.js";
+import {
+  // addHeadlines,
+  // deleteHeading,
+  displayHeadlines,
+  // multiAddHeadlines,
+  // updateHeading,
+} from "../controllers/head.controller.js";
+import {
+  addHomeCard,
   cardSearch,
   createCard,
+  displayHomeCard,
   removeCard,
+  removeHomeCard,
   searchCard,
   showAllCards,
   updateCard,
+  updateHomeCard,
 } from "../controllers/card.controller.js";
 import {
   addUserType,
@@ -57,11 +74,19 @@ import {
   addLiveLink,
   addLiveNewUpdate,
   clearnewLive,
+  // addLiveDateTime,
+  // addLiveLink,
   displayHistoryOfLive,
+  // displayLiveDateTime,
   displayLiveLink,
   displayLiveNewUpdates,
   stopLiveLink,
 } from "../controllers/liveLink.controller.js";
+// import {
+//   // addAllSocialMedia,
+//   // displayAllSocialMedia,
+//   // updateAllSocialMedia,
+// } from "../controllers/socialMedia.controller.js";
 import {
   addContactWithUS,
   deleteContactWithUS,
@@ -83,11 +108,16 @@ import {
   displayOnBoarding,
 } from "../controllers/flutter/onBoading.controller.js";
 import {
+  // get__Cards,
   get_action,
   get_Cards,
   get_LiveNewUpdates,
   get_searchCard,
   get_userType,
+  // get_ExperienceCenterDigitally,
+  // get_FacilitiesServicesatCenter,
+  // get_StayUpdated,
+  // get_userType,
 } from "../controllers/translation/allTranslated.controller.js";
 import {
   add_direction,
@@ -99,20 +129,25 @@ import {
 } from "../controllers/Direction/direction.controller.js";
 import {
   countDeviceTokens,
+  // createGroup,
+  // deleteGroup,
   displayAllNotification,
+  // displayGroup,
   displayUser,
   getUserNotifications,
+  logoutAndUnsubscribeToken,
   saveAndSubscribeToken,
   searchUser,
   sendGroupNotification,
   sendNotificationToAll,
   sendSingleNotification,
+  // updateGroupUser,
 } from "../controllers/notification/sendNotificationToAll.controller.js";
 import {
-  createGroupExcel,
   createGroupWithUser,
   deleteGroup,
   futureNotificaton,
+  // displayGroup,
   getAllGroupsWithDeviceTokens,
   updateGroupUser,
 } from "../controllers/notification/group.controller.js";
@@ -126,12 +161,19 @@ import {
   userDetails,
 } from "../controllers/user/user.controller.js";
 import {
+  // addHomeLinkLog,
   addLinkLog,
   displayHomeLinkLog,
   displayLinkLog,
 } from "../controllers/linkLogs/linkLog.controller.js";
+// import { verifyToken } from "../middleware/verifyToken.js";
 
-//using multer for file handeling
+// import verifyToken from "../middleware/verifyToken.js";
+
+// Store files in memory instead of disk
+// const storage = multer.memoryStorage();
+
+// export const upload_V2 = multer({ storage });
 const storage = multer.memoryStorage();
 export const upload_V2 = multer({ storage });
 
@@ -140,8 +182,10 @@ export const upload_V2 = multer({ storage });
 const router = express.Router();
 
 // admin functionality
-// router.post("/adminRegister", registerAdmin);
+router.post("/adminRegister", registerAdmin);
 router.post("/adminLogin", loginAdmin);
+// router.patch("/adminUpdayte");
+// router.delete("/adminDelete");
 
 // user
 router.post("/userLogin", loginUser);
@@ -154,8 +198,18 @@ router.patch("/updateUserDetails/:id", updateDetails);
 router.post("/OTPCheck/:id", OTPCheck);
 router.patch("/logout", logoutuser);
 
+// customer functionality
+// router.post("/userRegister", registerCustomer);
+// router.post("/userLogin", loginCustomer);
+// router.patch("/userUpdate/:id", updateCustomer);
+// router.delete("/userDelete/:id", deleteCustomer);
+
 // Headings
 router.get("/displayHeading", displayHeadlines);
+// router.post("/addHeading", addHeadlines);
+// router.post("/addHeading", multiAddHeadlines);
+// router.patch("/updateHeading/:id", updateHeading);
+// router.delete("/deleteHeading/:id", deleteHeading);
 
 //containers
 router.get("/showAllCards/:headline", showAllCards);
@@ -165,12 +219,17 @@ router.patch("/updateCard/:id", upload_V2.array("img"), updateCard); //😊
 router.delete("/removeCard/:id", removeCard);
 router.get("/card_search", cardSearch);
 
+// router.get("/displayHomeCard", displayHomeCard);
+// router.post("/createHomeCard", upload_V2.array("img"), addHomeCard);
+// router.patch("/updateHomeCCard/:id", upload_V2.single("img"), updateHomeCard);
+// router.delete("/removeHomeCard/:id", removeHomeCard);
+
 //user Types
 router.get("/userType", userType);
 router.get("/userType/:id", singleuserType);
 router.get("/userTypeHome/:id", singleHomeuserType);
-router.post("/addUserType", upload_V2.array("img"), addUserType); //😊
-router.patch("/updateUSerType/:id", upload_V2.array("img"), updateUserType); //😊
+router.post("/addUserType", upload_V2.array("img"), addUserType); //👍
+router.patch("/updateUSerType/:id", upload_V2.array("img"), updateUserType); //👍
 router.delete("/deleteUSerType/:id", deleteUserType);
 
 // favorite
@@ -184,12 +243,12 @@ router.get("/displayFavouriteHome/:id", favouriteHomeCardDisplay);
 
 //actions
 router.get("/displayAction/:usertype", action);
-router.post("/addAction", upload_V2.array("img"), addAction); //😊
-router.patch("/updateAction/:id", upload_V2.array("img"), updateAction); //😊
+router.post("/addAction", upload_V2.array("img"), addAction); //
+router.patch("/updateAction/:id", upload_V2.array("img"), updateAction); //👍
 router.delete("/deleteAction/:id", deleteAction);
 
 // YouTube Link
-router.post("/addYoutubeLinks", upload_V2.array("thumbnail"), addYoutubeLinks); //😊
+router.post("/addYoutubeLinks", upload_V2.array("thumbnail"), addYoutubeLinks); //👍
 router.get("/displayMobYoutubeLinks", showMobileYoutubeLinks);
 router.get("/displayWebYoutubeLinks", showWebYoutubeLinks);
 router.patch(
@@ -208,8 +267,13 @@ router.post(
     { name: "img3", maxCount: 1 },
   ]),
   addAdvertisement
-); //😊
+); //👍
 router.get("/advertisement_history", displayHistoryOfAdvertisement);
+// router.post(
+//   "/addAdv",
+//   upload_V2.array("images", 3), // 👈 Accepts 3 files under the "images" field
+//   addAdvertisement
+// );
 
 // router.post("/addAdv", upload_V2.any(), addAdvertisement);
 router.get("/displayAdvertisement", getAdvertisements);
@@ -241,7 +305,6 @@ router.get("/notifications/:deviceId", getUserNotifications);
 // group
 router.get("/displayAllGroup", getAllGroupsWithDeviceTokens);
 router.post("/createGroup", createGroupWithUser);
-router.post("/createGroupExel", createGroupExcel);
 router.delete("/deleteGroup/:id", deleteGroup);
 router.patch("/updateGroup/:id", updateGroupUser);
 
@@ -316,7 +379,7 @@ router.get("/display_direction", get_direction);
 router.post("/add_direction", upload_V2.array("directionImg"), add_direction); // 👍
 router.patch(
   "/update_direction/:id",
-  upload_V2.array("directionImg"),
+  upload_V2.single("directionImg"),
   update_direction
 );
 router.delete("/delete_direction/:id", delete_direction);

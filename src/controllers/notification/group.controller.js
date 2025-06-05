@@ -59,6 +59,69 @@ export const createGroupWithUser = async (req, res) => {
   }
 };
 
+export const createGroupExcel = async (req, res) => {
+  try {
+    const { groupName, user } = req.body;
+
+    if (!groupName || !Array.isArray(user) || user.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Group name and user list are required",
+      });
+    }
+
+    // Find device tokens based on email or phone
+    const deviceTokenIds = [];
+
+    for (const u of user) {
+      const foundUser = await DeviceToken.findOne({
+        $or: [{ email: u.email }, { phone: u.phone }],
+      });
+
+      if (foundUser) {
+        deviceTokenIds.push(foundUser._id);
+      }
+    }
+
+    if (deviceTokenIds.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No matching users found",
+      });
+    }
+
+    // Check for duplicate groupName
+    const existingGroup = await Group.findOne({ groupName });
+    if (existingGroup) {
+      return res.status(400).json({
+        success: false,
+        message: "Group name already exists",
+      });
+    }
+
+    // Create new group
+    const newGroup = new Group({
+      groupName,
+      deviceTokens: deviceTokenIds,
+    });
+
+    await newGroup.save();
+
+    return res.status(201).json({
+      success: true,
+      message: "Group created successfully",
+      group: newGroup,
+    });
+  } catch (error) {
+    console.error("Error in createGroupExcel:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      error: error.message,
+    });
+  }
+};
+
 export const deleteGroup = async (req, res) => {
   try {
     const { id } = req.params;
