@@ -247,7 +247,7 @@ export const audioTour = async (req, res) => {
       return dist <= 60;
     });
 
-    res.status(200).json(nearbyTours);
+    res.status(200).json(nearbyTours[0]);
   } catch (error) {
     console.error("Error in audioTour:", error);
     res.status(500).json({ message: "Server error", error: error.message });
