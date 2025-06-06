@@ -107,6 +107,7 @@ import {
   sendGroupNotification,
   sendNotificationToAll,
   sendSingleNotification,
+  userNotificationCount,
 } from "../controllers/notification/sendNotificationToAll.controller.js";
 import {
   createGroupExcel,
@@ -237,6 +238,8 @@ router.get("/future-notification", futureNotificaton);
 router.get("/searchUser", searchUser);
 
 router.get("/notifications/:deviceId", getUserNotifications);
+
+router.get("/userNotificationCount/:deviceId", userNotificationCount);
 
 // group
 router.get("/displayAllGroup", getAllGroupsWithDeviceTokens);

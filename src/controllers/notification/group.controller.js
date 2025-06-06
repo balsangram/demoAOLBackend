@@ -62,6 +62,7 @@ export const createGroupWithUser = async (req, res) => {
 export const createGroupExcel = async (req, res) => {
   try {
     const { groupName, user } = req.body;
+    console.log("🚀 ~ createGroupExcel ~ req.body:", req.body);
 
     if (!groupName || !Array.isArray(user) || user.length === 0) {
       return res.status(400).json({
@@ -70,12 +71,13 @@ export const createGroupExcel = async (req, res) => {
       });
     }
 
-    // Find device tokens based on email or phone
     const deviceTokenIds = [];
 
     for (const u of user) {
+      // Match BOTH email and phone
       const foundUser = await DeviceToken.findOne({
-        $or: [{ email: u.email }, { phone: u.phone }],
+        email: u.email,
+        phone: u.phone,
       });
 
       if (foundUser) {
@@ -86,11 +88,10 @@ export const createGroupExcel = async (req, res) => {
     if (deviceTokenIds.length === 0) {
       return res.status(404).json({
         success: false,
-        message: "No matching users found",
+        message: "No matching users found with both email and phone",
       });
     }
 
-    // Check for duplicate groupName
     const existingGroup = await Group.findOne({ groupName });
     if (existingGroup) {
       return res.status(400).json({
@@ -99,7 +100,6 @@ export const createGroupExcel = async (req, res) => {
       });
     }
 
-    // Create new group
     const newGroup = new Group({
       groupName,
       deviceTokens: deviceTokenIds,

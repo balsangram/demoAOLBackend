@@ -642,6 +642,16 @@ export const getUserNotifications = async (req, res) => {
     if (!device) {
       return res.status(404).json({ message: "Device not registered." });
     }
+    console.log("🚀 ~ getUserNotifications ~ device:", device._id);
+    let devId = device._id;
+    // ✅ Reset `count` in all notifications related to the device
+    await Notification.updateMany(
+      { devId: devId }, // Replace `devId` with your actual field if different
+      { count: 0 }
+    );
+    await Notification.findByIdAndUpdate(devId, { count: 0 });
+
+    // console.log(!resetCount);
 
     const deviceCreatedAt = device.createdAt;
 
@@ -726,5 +736,27 @@ export const searchUser = async (req, res) => {
   } catch (error) {
     console.error("Error in searchUser:", error);
     res.status(500).json({ message: "Internal server error." });
+  }
+};
+
+export const userNotificationCount = async (req, res) => {
+  const { deviceId } = req.params;
+
+  try {
+    const device = await DeviceToken.findById(deviceId).select("count");
+
+    if (!device) {
+      return res.status(404).json({ message: "Device not found" });
+    }
+
+    return res.status(200).json({
+      count: device.count,
+    });
+  } catch (error) {
+    console.error("❌ Error fetching notification count:", error);
+    return res.status(500).json({
+      message: "Server error while fetching count",
+      error: error.message,
+    });
   }
 };
