@@ -100,9 +100,16 @@ export async function scheduleNotificationWithCron(
   }
 }
 
-export async function scheduleNotificationWithoutCron(message, tokens) {
+export async function scheduleNotificationWithoutCron(
+  message,
+  tokens,
+  selectedIds
+) {
   try {
     // Schedule a job
+    console.log(selectedIds, "tokens 😊");
+
+    
 
     const results = [];
     const errors = [];
@@ -424,9 +431,14 @@ export const sendSingleNotification = async (req, res) => {
 
     console.log(NotificationTime, "NotificationTime");
     if (!NotificationTime) {
-      scheduleNotificationWithoutCron(message, tokens);
+      scheduleNotificationWithoutCron(message, tokens, selectedIds);
     } else {
-      scheduleNotificationWithCron(outputNotificationTime, message, tokens);
+      scheduleNotificationWithCron(
+        outputNotificationTime,
+        message,
+        tokens,
+        selectedIds
+      );
     }
 
     const successCount = results.length;
@@ -644,14 +656,12 @@ export const getUserNotifications = async (req, res) => {
     }
     console.log("🚀 ~ getUserNotifications ~ device:", device._id);
     let devId = device._id;
+    console.log("🚀 ~ getUserNotifications ~ devId:", devId);
     // ✅ Reset `count` in all notifications related to the device
-    await Notification.updateMany(
-      { devId: devId }, // Replace `devId` with your actual field if different
-      { count: 0 }
-    );
-    await Notification.findByIdAndUpdate(devId, { count: 0 });
+    // ✅ Reset count on DeviceToken
+    const resetCount = await DeviceToken.findByIdAndUpdate(devId, { count: 0 });
 
-    // console.log(!resetCount);
+    console.log(!resetCount);
 
     const deviceCreatedAt = device.createdAt;
 
