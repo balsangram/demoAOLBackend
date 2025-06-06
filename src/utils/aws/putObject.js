@@ -9,7 +9,8 @@ export const putObject = async (file, fileName) => {
     console.log("bucket", process.env.AWS_S3_BUCKET);
 
     const params = {
-      Bucket: process.env.AWS_S3_BUCKET,
+      Bucket: "aol-s3bucket",
+      // Bucket: process.env.AWS_S3_BUCKET,
       Key: fileName,
       Body: file.data, // Directly use the file buffer
       ContentType: file.mimetype || "application/octet-stream", // Ensure ContentType is valid
