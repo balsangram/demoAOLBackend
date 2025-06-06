@@ -16,6 +16,8 @@ export const add_audioTour = async (req, res) => {
       latitude,
       longitude,
       audioDirectionText,
+      directionDescription,
+      directionusertype
     } = req.body;
 
     // Validation
@@ -251,7 +253,9 @@ export const audioTour = async (req, res) => {
     } else {
       // Out of range fallback response
       return res.status(200).json({
-        message: "You are out of the range",
+        audioDirectionImg:
+          "https://res.cloudinary.com/dr3rcfbpm/image/upload/v1748429833/uploads/1000031477.jpg.jpg",
+        audioDirectionName: "You are out of the range",
         audioLink:
           "https://aol-s3bucket.s3.ap-south-1.amazonaws.com/audioTour-audio/1749200728954-eona-emotional-ambient-pop-351436.mp3",
       });
