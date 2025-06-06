@@ -246,8 +246,16 @@ export const audioTour = async (req, res) => {
       );
       return dist <= 60;
     });
-
-    res.status(200).json(nearbyTours[0]);
+    if (nearbyTours.length > 0) {
+      return res.status(200).json(nearbyTours[0]); // Return the first match
+    } else {
+      // Out of range fallback response
+      return res.status(200).json({
+        message: "You are out of the range",
+        audioLink:
+          "https://aol-s3bucket.s3.ap-south-1.amazonaws.com/audioTour-audio/1749200728954-eona-emotional-ambient-pop-351436.mp3",
+      });
+    }
   } catch (error) {
     console.error("Error in audioTour:", error);
     res.status(500).json({ message: "Server error", error: error.message });
