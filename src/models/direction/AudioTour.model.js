@@ -44,6 +44,12 @@ const audioTourSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+
+    directionUserModel: {
+      type: String,
+      enum: ["Tour and Maps", "Audio Tour only"],
+      default: "Audio Tour only",
+    },
   },
   {
     timestamps: true,

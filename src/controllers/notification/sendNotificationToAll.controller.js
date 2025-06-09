@@ -35,18 +35,6 @@ export async function scheduleNotificationWithCron(
 ) {
   try {
     console.log("came here");
-
-    // Parse mm-hh-dd-MM-yyyy
-    // const [minute, hour, day, month, year] = scheduleString;
-    // console.log("🚀 ~ scheduleString:", scheduleString).split("-").map(Number);
-    // const t = scheduleString.split(" ");
-    // const d = t[0].split("/");
-    // const time = t[1].split(":");
-    // const minute = time[1];
-    // const hour = time[0];
-    // const year = d[2];
-    // const month = d[0];
-    // const day = d[1];
     const t = new Date(scheduleString);
     const minute = t.getMinutes();
     const hour = t.getHours();
@@ -59,11 +47,6 @@ export async function scheduleNotificationWithCron(
       "YYYY-MM-DD HH:mm",
       "Asia/Kolkata"
     );
-    console.log("🚀 ~ month:", month);
-    console.log("🚀 ~ minute:", minute);
-    console.log("🚀 ~ dateIST:", dateIST);
-    console.log("👍");
-
     if (dateIST.isBefore(moment())) {
       console.log("Scheduled time is in the past.");
       return;
@@ -80,19 +63,38 @@ export async function scheduleNotificationWithCron(
       console.log("🚀 ~ job ~ results:", results);
       const errors = [];
       console.log("🚀 ~ job ~ errors:", errors);
-
       for (const token of tokens) {
         try {
           const response = await admin.messaging().send({ ...message, token });
           results.push({ token, success: true, response });
           console.log(
-            `✅ 👍 Notification sent to ${tokens} at ${dateIST.format()}:`,
+            `✅ 👍 Notification sent to ${token} at ${dateIST.format()}:`,
             response
           );
+          // Increment count for the user with this token
+          await mongoose
+            .model("DeviceToken")
+            .updateOne({ token }, { $inc: { count: 1 } });
         } catch (err) {
           errors.push({ token, error: err.message });
         }
       }
+      // for (const token of tokens) {
+      //   try {
+      //     const response = await admin.messaging().send({ ...message, token });
+      //     results.push({ token, success: true, response });
+      //     console.log(
+      //       `✅ 👍 Notification sent to ${tokens} at ${dateIST.format()}:`,
+      //       response
+      //     );
+      //     // Increment count for the user with this token
+      //     await mongoose
+      //       .model("DeviceToken")
+      //       .updateOne({ token }, { $inc: { count: 1 } });
+      //   } catch (err) {
+      //     errors.push({ token, error: err.message });
+      //   }
+      // }
       // const response = await admin.messaging().send(fullMessage);
     });
   } catch (err) {
@@ -109,23 +111,40 @@ export async function scheduleNotificationWithoutCron(
     // Schedule a job
     console.log(selectedIds, "tokens 😊");
 
-    
-
     const results = [];
     const errors = [];
-
     for (const token of tokens) {
       try {
         const response = await admin.messaging().send({ ...message, token });
         results.push({ token, success: true, response });
         console.log(
-          `✅ Notification sent to ${tokens} at ${dateIST.format()}:`,
+          `✅ 👍 Notification sent to ${token} at ${dateIST.format()}:`,
           response
         );
+        // Increment count for the user with this token
+        await mongoose
+          .model("DeviceToken")
+          .updateOne({ token }, { $inc: { count: 1 } });
       } catch (err) {
         errors.push({ token, error: err.message });
       }
     }
+    // for (const token of tokens) {
+    //   try {
+    //     const response = await admin.messaging().send({ ...message, token });
+    //     results.push({ token, success: true, response });
+    //     console.log(
+    //       `✅ Notification sent to ${tokens} at ${dateIST.format()}:`,
+    //       response
+    //     );
+    //     // Increment count for the user with this token
+    //     await mongoose
+    //       .model("DeviceToken")
+    //       .updateOne({ token }, { $inc: { count: 1 } });
+    //   } catch (err) {
+    //     errors.push({ token, error: err.message });
+    //   }
+    // }
   } catch (err) {
     console.error(`❌ Failed to send notification:`, err.message);
   }
@@ -176,7 +195,7 @@ export const sendNotificationToAll = async (req, res) => {
         });
       }
     }
-    console.log("🚀 ~ sendNotificationToAll ~ cronTime:", cronTime);
+    console.log("🚀 ~ sendNotificationToAll ~ cronTime:", NotificationTime);
     let sentNotification = new Notification({
       title,
       body,
@@ -203,21 +222,6 @@ export const sendNotificationToAll = async (req, res) => {
       // await sentNotification.save();
     }
 
-    // await sentNotification.save();
-    // // console.log("🚀 ~ sendNotificationToAll ~ job:", job);
-    // let scheduledNotification = null;
-    // if (nowTime > now) {
-    //   scheduledNotification = new Notification({
-    //     title,
-    //     body,
-    //     NotificationTime: nowTime,
-    //     status: "scheduled",
-    //   });
-    //   console.log("👍");
-
-    //   await scheduledNotification.save();
-    // }
-
     await sentNotification.save();
     // Return response
     const istFormatter = new Intl.DateTimeFormat("en-IN", {
@@ -235,9 +239,6 @@ export const sendNotificationToAll = async (req, res) => {
       scheduledTimeIST: istFormatter.format(nowTime),
       currentTimeIST: istFormatter.format(now),
       notification: sentNotification,
-      // notification: scheduledNotification
-      //   ? scheduledNotification
-      //   : sentNotification,
     });
   } catch (error) {
     console.error("❌ Error processing notification:", error);

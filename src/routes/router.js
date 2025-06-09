@@ -324,7 +324,23 @@ router.get("/display_live_date_time_language/:language", get_LiveNewUpdates);
 
 // direction
 router.get("/display_direction", get_direction);
-router.post("/add_direction", upload_V2.array("directionImg"), add_direction); // 👍
+// router.post(
+//   "/add_direction",
+//   upload_V2.fields([
+//     { name: "directionImg", maxCount: 1 },
+//     { name: "audioLink", maxCount: 1 },
+//   ]),
+//   add_direction
+// ); // 👍
+router.post(
+  "/add_direction",
+  upload_V2.fields([
+    { name: "directionImg", maxCount: 1 },
+    { name: "audioLink", maxCount: 1 },
+  ]),
+  add_direction
+);
+// router.post("/add_direction", upload_V2.array("directionImg"), add_direction); // 👍
 router.patch(
   "/update_direction/:id",
   upload_V2.array("directionImg"),

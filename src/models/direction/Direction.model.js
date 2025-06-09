@@ -35,6 +35,13 @@ const directionSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+
+    //
+    directionUserModel: {
+      type: String,
+      enum: ["Tour and Maps", "Maps Tour only"],
+      default: "Maps Tour only",
+    },
   },
   {
     timestamps: true,

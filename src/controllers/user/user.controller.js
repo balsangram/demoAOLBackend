@@ -400,6 +400,7 @@ export const OTPCheck = async (req, res) => {
     if (!otp || !type) {
       return res.status(400).json({ message: "OTP and type are required." });
     }
+    console.log(id, "id");
 
     const otpRecord = await OtpModel.findOne({ userid: id });
 

@@ -1,7 +1,122 @@
 import AudioTour from "../../models/direction/AudioTour.model.js";
+import Direction from "../../models/direction/Direction.model.js";
 import { deleteObject } from "../../utils/aws/deleteObject.js";
 import { putObject } from "../../utils/aws/putObject.js";
 import { uploadToCloudinary } from "../../utils/cloudnary.js"; // Ensure this exists and works
+
+// export const add_audioTour = async (req, res) => {
+//   console.log("📦 Body:", req.body);
+//   console.log("📁 Files:", req.files);
+
+//   try {
+//     const {
+//       language,
+//       audioDirectionName,
+//       audioTourModel,
+//       videoLink,
+//       latitude,
+//       longitude,
+//       audioDirectionText,
+//       directionDescription,
+//       directionUserType,
+//       directionUserModel,
+//     } = req.body;
+
+//     // Validation
+//     if (
+//       !language ||
+//       !audioDirectionName ||
+//       !audioTourModel ||
+//       !videoLink ||
+//       !latitude ||
+//       !longitude ||
+//       !audioDirectionText ||
+//       directionUserModel ||
+//       !req.files?.audioDirectionImg?.length ||
+//       !req.files?.audioLink?.length
+//     ) {
+//       return res
+//         .status(400)
+//         .json({ message: "All fields including image and audio are required" });
+//     }
+
+//     // Check if the new name is already used by another document
+
+//     const nameExists = await AudioTour.findOne({ audioDirectionName });
+//     if (nameExists) {
+//       return res.status(400).json({
+//         message: "Audio Direction Name already exists. Please choose another.",
+//       });
+//     }
+
+//     // Handle image upload
+//     const uploadedImgFile = req.files.audioDirectionImg[0];
+//     const imgBuffer = uploadedImgFile.buffer;
+//     const imgUpload = await putObject(
+//       { data: imgBuffer, mimetype: uploadedImgFile.mimetype },
+//       `audioTour-img/${Date.now()}-${uploadedImgFile.originalname}`
+//     );
+//     const audioDirectionImg = imgUpload.url;
+
+//     // Handle audio upload
+//     const uploadedAudioFile = req.files.audioLink[0];
+//     const audioBuffer = uploadedAudioFile.buffer;
+//     const audioUpload = await putObject(
+//       { data: audioBuffer, mimetype: uploadedAudioFile.mimetype },
+//       `audioTour-audio/${Date.now()}-${uploadedAudioFile.originalname}`
+//     );
+//     const audioLink = audioUpload.url;
+//     let newDirection = "";
+//     console.log(directionUserType, "directionUserType");
+
+//     // Save to DB
+//     if (directionUserType === "Tour and Maps") {
+//       newDirection = new AudioTour({
+//         language,
+//         audioDirectionName,
+//         audioTourModel,
+//         audioDirectionImg,
+//         audioLink,
+//         videoLink,
+//         longitude,
+//         latitude,
+//         audioDirectionText,
+//         directionUserModel,
+//       });
+//       newDirection = new Direction({
+//         directionName: audioDirectionName,
+//         directionImg: audioDirectionImg,
+//         directionDescription,
+//         longitude,
+//         latitude,
+//         directionusertype,
+//       });
+//     } else {
+//       newDirection = new AudioTour({
+//         language,
+//         audioDirectionName,
+//         audioTourModel,
+//         audioDirectionImg,
+//         audioLink,
+//         videoLink,
+//         longitude,
+//         latitude,
+//         audioDirectionText,
+//       });
+//     }
+//     await newDirection.save();
+
+//     res.status(201).json({
+//       message: "Direction added successfully",
+//       data: newDirection,
+//     });
+//   } catch (error) {
+//     console.error("❌ Error while adding direction:", error);
+//     res.status(500).json({ message: "Failed to add direction", error });
+//   }
+// };
+
+// Get all directions
 
 export const add_audioTour = async (req, res) => {
   console.log("📦 Body:", req.body);
@@ -17,36 +132,56 @@ export const add_audioTour = async (req, res) => {
       longitude,
       audioDirectionText,
       directionDescription,
-      directionusertype
+      directionusertype,
+      directionUserModel,
     } = req.body;
 
-    // Validation
+    // Basic required fields (excluding optional audio/video)
     if (
       !language ||
       !audioDirectionName ||
       !audioTourModel ||
-      !videoLink ||
       !latitude ||
       !longitude ||
       !audioDirectionText ||
-      !req.files?.audioDirectionImg?.length ||
-      !req.files?.audioLink?.length
+      !req.files?.audioDirectionImg?.length
     ) {
-      return res
-        .status(400)
-        .json({ message: "All fields including image and audio are required" });
-    }
-
-    // Check if the new name is already used by another document
-
-    const nameExists = await AudioTour.findOne({ audioDirectionName });
-    if (nameExists) {
       return res.status(400).json({
-        message: "Audio Direction Name already exists. Please choose another.",
+        message:
+          "Required fields are missing (language, name, model, coordinates, text, image).",
       });
     }
 
-    // Handle image upload
+    // Extra validation for Tour and Maps
+    if (directionUserModel === "Tour and Maps") {
+      if (!directionDescription || !directionusertype) {
+        return res.status(400).json({
+          message:
+            "Direction description and user type are required for 'Tour and Maps'",
+        });
+      }
+    }
+
+    // Check uniqueness
+    const nameExists = await AudioTour.findOne({ audioDirectionName });
+    if (nameExists) {
+      return res.status(400).json({
+        message: "Audio Direction Name already exists.",
+      });
+    }
+
+    if (directionUserModel === "Tour and Maps") {
+      const directionNameExists = await Direction.findOne({
+        directionName: audioDirectionName,
+      });
+      if (directionNameExists) {
+        return res.status(400).json({
+          message: "Direction Name already exists in Directions.",
+        });
+      }
+    }
+
+    // Image Upload (Required)
     const uploadedImgFile = req.files.audioDirectionImg[0];
     const imgBuffer = uploadedImgFile.buffer;
     const imgUpload = await putObject(
@@ -55,41 +190,66 @@ export const add_audioTour = async (req, res) => {
     );
     const audioDirectionImg = imgUpload.url;
 
-    // Handle audio upload
-    const uploadedAudioFile = req.files.audioLink[0];
-    const audioBuffer = uploadedAudioFile.buffer;
-    const audioUpload = await putObject(
-      { data: audioBuffer, mimetype: uploadedAudioFile.mimetype },
-      `audioTour-audio/${Date.now()}-${uploadedAudioFile.originalname}`
-    );
-    const audioLink = audioUpload.url;
+    // Audio Upload (Optional)
+    let audioLink = "";
+    if (req.files?.audioLink?.length) {
+      const uploadedAudioFile = req.files.audioLink[0];
+      const audioBuffer = uploadedAudioFile.buffer;
+      const audioUpload = await putObject(
+        { data: audioBuffer, mimetype: uploadedAudioFile.mimetype },
+        `audioTour-audio/${Date.now()}-${uploadedAudioFile.originalname}`
+      );
+      audioLink = audioUpload.url;
+    }
 
-    // Save to DB
-    const newDirection = new AudioTour({
+    // Create AudioTour document
+    const newAudioTour = new AudioTour({
       language,
       audioDirectionName,
       audioTourModel,
       audioDirectionImg,
-      audioLink,
-      videoLink,
+      audioLink, // could be "" if not provided
+      videoLink: videoLink || "", // optional field
       longitude,
       latitude,
       audioDirectionText,
+      directionUserModel: directionUserModel || "Audio Tour only",
     });
 
-    await newDirection.save();
+    // If Tour and Maps, save in both collections
+    if (directionUserModel === "Tour and Maps") {
+      const newDirection = new Direction({
+        directionName: audioDirectionName,
+        directionImg: audioDirectionImg,
+        directionDescription,
+        longitude,
+        latitude,
+        directionusertype,
+        directionUserModel,
+      });
 
-    res.status(201).json({
-      message: "Direction added successfully",
-      data: newDirection,
-    });
+      await Promise.all([newAudioTour.save(), newDirection.save()]);
+
+      return res.status(201).json({
+        message: "AudioTour and Direction added successfully",
+        data: { audioTour: newAudioTour, direction: newDirection },
+      });
+    } else {
+      await newAudioTour.save();
+
+      return res.status(201).json({
+        message: "AudioTour added successfully",
+        data: { audioTour: newAudioTour },
+      });
+    }
   } catch (error) {
     console.error("❌ Error while adding direction:", error);
-    res.status(500).json({ message: "Failed to add direction", error });
+    return res
+      .status(500)
+      .json({ message: "Failed to add direction", error: error.message });
   }
 };
 
-// Get all directions
 export const get_audioTour = async (req, res) => {
   try {
     const directions = await AudioTour.find();
@@ -255,7 +415,7 @@ export const audioTour = async (req, res) => {
       return res.status(200).json({
         audioDirectionImg:
           "https://res.cloudinary.com/dr3rcfbpm/image/upload/v1748429833/uploads/1000031477.jpg.jpg",
-        audioDirectionName: "You are out of the range",
+        audioDirectionText: "You are out of the range",
         audioLink:
           "https://aol-s3bucket.s3.ap-south-1.amazonaws.com/audioTour-audio/1749200728954-eona-emotional-ambient-pop-351436.mp3",
       });
