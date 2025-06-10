@@ -21,25 +21,10 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use("/aol", router);
 
-// job.start();
-// notificationJob.start();
-// liveLinkJob.start();
-// jobNotification.start();
-// popupCronJob.start();
-// console.log("🚀 Popup cron job started");
-
-// app.use('/cards', verifyToken, cardRoutes);
-// app.use('/cards',cardRoutes);
-// user type
-// app.use("/user", userRoutes);
-
-//notification
-// app.use("/notifications", notificationRoutes);
-
-// healthy api
 app.get("/", (req, res) => {
   res.send("Hello, this project is Art Of Living 28-06-02:16:30");
 });
+
 const PORT = process.env.PORT || 5000;
 const startServer = async () => {
   try {

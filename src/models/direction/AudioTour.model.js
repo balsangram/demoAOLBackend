@@ -20,7 +20,7 @@ const audioTourSchema = new mongoose.Schema(
     },
     audioTourModel: {
       type: String,
-      enum: ["Vehicle Tour", "Walking Tour", "Video Tour"],
+      enum: ["Vehicle Tour", "Walk Tour", "Video Tour"],
       required: true,
     },
     audioLink: {

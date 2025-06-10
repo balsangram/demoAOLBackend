@@ -414,10 +414,9 @@ export const audioTour = async (req, res) => {
       // Out of range fallback response
       return res.status(200).json({
         audioDirectionImg:
-          "https://res.cloudinary.com/dr3rcfbpm/image/upload/v1748429833/uploads/1000031477.jpg.jpg",
-        audioDirectionText: "You are out of the range",
+          "https://aol-s3bucket.s3.ap-south-1.amazonaws.com/audioTour-img/1749530367298-{F5E8AE30-960D-4D17-AAF1-B27593A43F1D}.png",
         audioLink:
-          "https://aol-s3bucket.s3.ap-south-1.amazonaws.com/audioTour-audio/1749200728954-eona-emotional-ambient-pop-351436.mp3",
+          "https://aol-s3bucket.s3.ap-south-1.amazonaws.com/audioTour-audio/1749530367848-joy gurudev(instrumental)...Art of living bhajan.mp3",
       });
     }
   } catch (error) {

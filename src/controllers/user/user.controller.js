@@ -485,6 +485,7 @@ export const deleteUser = async (req, res) => {
 
 export const logoutuser = async (req, res) => {
   const { userId } = req.body;
+  console.log("🚀 ~ logoutuser ~ userId:", userId);
 
   if (!userId) {
     return res.status(400).json({ message: "User ID is required" });
@@ -496,6 +497,7 @@ export const logoutuser = async (req, res) => {
       { $set: { token: null } },
       { new: true }
     );
+    console.log("🚀 ~ logoutuser ~ updatedUser:", updatedUser);
 
     if (!updatedUser) {
       return res.status(404).json({ message: "User not found" });
