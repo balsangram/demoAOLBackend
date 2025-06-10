@@ -406,7 +406,7 @@ export const audioTour = async (req, res) => {
         item.latitude,
         item.longitude
       );
-      return dist <= 60;
+      return dist <= 70;
     });
     if (nearbyTours.length > 0) {
       return res.status(200).json(nearbyTours[0]); // Return the first match
