@@ -417,6 +417,7 @@ export const audioTour = async (req, res) => {
           "https://aol-s3bucket.s3.ap-south-1.amazonaws.com/audioTour-img/1749530367298-{F5E8AE30-960D-4D17-AAF1-B27593A43F1D}.png",
         audioLink:
           "https://aol-s3bucket.s3.ap-south-1.amazonaws.com/audioTour-audio/1749530367848-joy gurudev(instrumental)...Art of living bhajan.mp3",
+        audioDirectionText: "You are out of the range",
       });
     }
   } catch (error) {
