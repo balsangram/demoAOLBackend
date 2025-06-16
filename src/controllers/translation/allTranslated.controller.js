@@ -43,7 +43,7 @@ import LiveNewUpdate from "../../models/LiveNewUpdate.model.js";
 // };
 
 export const get_Cards = async (req, res) => {
-  console.log("card..");
+  console.log("card..........");
 
   try {
     const { headline, language } = req.params;

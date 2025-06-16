@@ -37,6 +37,7 @@ export const cardSearch = async (req, res) => {
 // Show All Cards
 export const showAllCards = async (req, res) => {
   try {
+    console.log("req.body", req.body);
     const { headline } = req.params;
     // console.log("Received headline:", headline);
 
@@ -169,17 +170,59 @@ export const updateCard = async (req, res) => {
 };
 
 // Delete Card
+// export const removeCard = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+//     console.log(id, "id");
+
+//     const deletedCard = await Card.findByIdAndDelete(id);
+//     if (!deletedCard)
+//       return res.status(404).json({ message: "Card not found" });
+//     res.status(200).json({ message: "Card removed successfully", deletedCard });
+//   } catch (error) {
+//     res.status(500).json({ message: error.message });
+//   }
+// };
 export const removeCard = async (req, res) => {
   try {
     const { id } = req.params;
     console.log(id, "id");
 
-    const deletedCard = await Card.findByIdAndDelete(id);
-    if (!deletedCard)
+    // Step 1: Find the card first
+    const existingCard = await Card.findById(id);
+    console.log("🚀 ~ removeCard ~ existingCard:", existingCard);
+
+    if (!existingCard) {
       return res.status(404).json({ message: "Card not found" });
-    res.status(200).json({ message: "Card removed successfully", deletedCard });
+    }
+
+    // Step 2: Delete image from S3 if it exists
+    if (existingCard.img) {
+      const urlParts = existingCard.img.split("cards/");
+      console.log("🚀 ~ removeCard ~ urlParts:", urlParts);
+
+      if (urlParts.length > 1) {
+        const key = `cards/${urlParts[1]}`;
+        await deleteObject(key);
+        console.log("🚀 ~ removeCard ~ Deleted image from S3:", key);
+      } else {
+        console.warn("Invalid image URL format:", existingCard.img);
+      }
+    }
+
+    // Step 3: Delete the card from the DB
+    await existingCard.deleteOne();
+
+    res.status(200).json({
+      message: "Card and image deleted successfully",
+      deletedCard: existingCard,
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("Error in removeCard:", error);
+    res.status(500).json({
+      message: "Internal server error",
+      error: error.message,
+    });
   }
 };
 

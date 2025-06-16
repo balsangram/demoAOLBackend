@@ -278,15 +278,15 @@ export const loginUser = async (req, res) => {
         const msg91Response = await axios.post(
           "https://api.msg91.com/api/v5/flow/",
           {
-            flow_id: "66dfe7fed6fc052fc01f1842",
-            sender: "AOLINF",
+            flow_id: process.env.MSG91_FLOW_ID,
+            sender: process.env.MSG91_DLT_SENDER_ID,
             mobiles: identifier,
-            template_id: "1207172550773733867",
+            template_id: process.env.MSG91_DLT_TEMPLATE_ID,
             var1: otpValue,
           },
           {
             headers: {
-              authkey: "366242AmCuCbkuRKH1655999f6P1",
+              authkey: process.env.MSG91_AUTH_KEY,
               "Content-Type": "application/json",
             },
           }

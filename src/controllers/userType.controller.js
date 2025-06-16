@@ -27,8 +27,12 @@ export const addUserType = async (req, res) => {
     }
     // console.log(files, "files");
 
-    const { usertype } = req.body;
-
+    const { usertype, link } = req.body;
+    if ((!usertype, !link)) {
+      return res
+        .status(404)
+        .json({ success: false, message: "usertype, link both rewuire" });
+    }
     const uploadedFiles = [];
     if (req.files && req.files.length > 0) {
       try {
@@ -62,6 +66,7 @@ export const addUserType = async (req, res) => {
     const newUserType = new UserType({
       usertype,
       img: uploadedFiles[0].file_url,
+      link,
     });
     console.log(newUserType, "newcard");
 
@@ -76,61 +81,61 @@ export const addUserType = async (req, res) => {
 // export const updateUserType = async (req, res) => {
 //   try {
 //     const { id } = req.params;
-//     console.log(id, "id");
+//     console.log("UserType ID:", id);
 
 //     const { usertype } = req.body;
-//     console.log(usertype, "userType", req.files);
+//     console.log("usertype:", usertype, "Files:", req.files);
 
-//     const existingWorkOrder = await UserType.findById(id).lean();
-//     if (!existingWorkOrder) {
-//       return res.status(404).json({ message: `Card with ID ${id} not found` });
+//     const existingUserType = await UserType.findById(id).lean();
+//     if (!existingUserType) {
+//       return res
+//         .status(404)
+//         .json({ message: `UserType with ID ${id} not found` });
 //     }
 
-//     // Delete old image from S3 if a new one is being uploaded
-//     if (req.files && req.files.length > 0 && existingWorkOrder.img) {
-//       const urlParts = existingWorkOrder.img.split("cards/");
-//       // const urlParts = existingWorkOrder.img.split("internal-login-cards/");
-//       console.log("🚀 ~ updateCard ~ urlParts:", urlParts);
+//     // Delete old image from S3 if a new image is uploaded
+//     if (req.files && req.files.length > 0 && existingUserType.img) {
+//       const urlParts = existingUserType.img.split("cards/");
 //       if (urlParts.length > 1) {
-//         const key = `cards/${urlParts[1]}`; // FIXED LINE
-//         // const key = `internal-login-cards/${urlParts[1]}`; // FIXED LINE
-//         await deleteObject(key); // Delete previous image
-//         console.log("🚀 ~ updateCard ~ key:", key);
+//         const key = `aol-login-cards/${urlParts[1]}`;
+//         await deleteObject(key); // Assuming this is your helper function to delete from S3
+//         console.log("Deleted old image from S3:", key);
 //       } else {
-//         console.warn("Invalid image URL format:", existingWorkOrder.img);
+//         console.warn("Invalid image URL format:", existingUserType.img);
 //       }
 //     }
 
-//     let imageUrl = null;
+//     let imageUrl = existingUserType.img; // Preserve existing image if no new one is uploaded
 
-//     // Upload new image and get URL
+//     // Upload new image if provided
 //     if (req.files && req.files.length > 0) {
-//       const file = req.files[0]; // Assuming only 1 image per card
+//       const file = req.files[0];
 //       const { buffer, mimetype, originalname } = file;
-
 //       const { url } = await putObject(
 //         { data: buffer, mimetype },
-//         `cards/${Date.now()}-${originalname}`
-//         // `internal-login-cards/${Date.now()}-${originalname}`
+//         `aol-login-cards/${Date.now()}-${originalname}`
 //       );
-
 //       imageUrl = url;
 //     }
 
-//     const isUserType = await UserType.findByIdAndUpdate(
+//     // Update UserType document
+//     const updatedUserType = await UserType.findByIdAndUpdate(
 //       id,
-//       { usertype },
+//       { usertype, img: imageUrl },
 //       { new: true }
 //     );
-//     if (!isUserType) {
-//       console.log(isUserType, "isUserType");
 
-//       return res.status(404).json({ message: "file not found" });
+//     if (!updatedUserType) {
+//       return res
+//         .status(404)
+//         .json({ message: "UserType not found after update" });
 //     }
-//     res.status(200).json({ message: "updated sucessafully", isUserType });
-//   } catch (error) {
-//     console.log(error, "error");
 
+//     res
+//       .status(200)
+//       .json({ message: "Updated successfully", data: updatedUserType });
+//   } catch (error) {
+//     console.error("Update error:", error);
 //     res.status(500).json({ message: error.message });
 //   }
 // };
@@ -140,8 +145,15 @@ export const updateUserType = async (req, res) => {
     const { id } = req.params;
     console.log("UserType ID:", id);
 
-    const { usertype } = req.body;
-    console.log("usertype:", usertype, "Files:", req.files);
+    const { usertype, link } = req.body; // Added link to destructuring
+    console.log("usertype:", usertype, "link:", link, "Files:", req.files);
+
+    // Validate required fields
+    // if (!usertype || !link) {
+    //   return res.status(400).json({
+    //     message: "Both usertype and link are required fields",
+    //   });
+    // }
 
     const existingUserType = await UserType.findById(id).lean();
     if (!existingUserType) {
@@ -151,12 +163,17 @@ export const updateUserType = async (req, res) => {
     }
 
     // Delete old image from S3 if a new image is uploaded
-    if (req.files && req.files.length > 0 && existingUserType.img) {
+    if (req.files?.length > 0 && existingUserType.img) {
       const urlParts = existingUserType.img.split("cards/");
       if (urlParts.length > 1) {
         const key = `aol-login-cards/${urlParts[1]}`;
-        await deleteObject(key); // Assuming this is your helper function to delete from S3
-        console.log("Deleted old image from S3:", key);
+        try {
+          await deleteObject(key);
+          console.log("Deleted old image from S3:", key);
+        } catch (deleteError) {
+          console.error("Failed to delete old image:", deleteError);
+          // Continue with update even if deletion fails
+        }
       } else {
         console.warn("Invalid image URL format:", existingUserType.img);
       }
@@ -165,22 +182,36 @@ export const updateUserType = async (req, res) => {
     let imageUrl = existingUserType.img; // Preserve existing image if no new one is uploaded
 
     // Upload new image if provided
-    if (req.files && req.files.length > 0) {
+    if (req.files?.length > 0) {
       const file = req.files[0];
       const { buffer, mimetype, originalname } = file;
-      const { url } = await putObject(
-        { data: buffer, mimetype },
-        `aol-login-cards/${Date.now()}-${originalname}`
-      );
-      imageUrl = url;
+      try {
+        const { url } = await putObject(
+          { data: buffer, mimetype },
+          `aol-login-cards/${Date.now()}-${originalname}`
+        );
+        imageUrl = url;
+      } catch (uploadError) {
+        console.error("Failed to upload new image:", uploadError);
+        return res.status(500).json({
+          message: "Failed to upload image",
+        });
+      }
     }
 
-    // Update UserType document
+    // Update UserType document with all fields
     const updatedUserType = await UserType.findByIdAndUpdate(
       id,
-      { usertype, img: imageUrl },
-      { new: true }
-    );
+      {
+        usertype,
+        img: imageUrl,
+        link, // Added link to the update
+      },
+      {
+        new: true,
+        runValidators: true, // Ensure validations are run
+      }
+    ).lean();
 
     if (!updatedUserType) {
       return res
@@ -188,26 +219,47 @@ export const updateUserType = async (req, res) => {
         .json({ message: "UserType not found after update" });
     }
 
-    res
-      .status(200)
-      .json({ message: "Updated successfully", data: updatedUserType });
+    res.status(200).json({
+      message: "Updated successfully",
+      data: updatedUserType,
+    });
   } catch (error) {
     console.error("Update error:", error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({
+      message: error.message || "Internal server error",
+    });
   }
 };
 
 export const deleteUserType = async (req, res) => {
   try {
-    console.log(req.params, "kkk");
-
     const { id } = req.params;
     console.log(`Attempting to delete UserType with ID: ${id}`);
-    const deletedUserType = await UserType.findByIdAndDelete(id);
-    if (!deletedUserType) {
+
+    // Step 1: Find the user first
+    const existingUserType = await UserType.findById(id);
+    if (!existingUserType) {
       return res.status(404).json({ message: "UserType not found" });
     }
-    res.status(200).json({ message: "ID deleted successfully" });
+
+    // Step 2: Delete image from S3 if it exists
+    if (existingUserType.img) {
+      const urlParts = existingUserType.img.split("cards/");
+      if (urlParts.length > 1) {
+        const key = `aol-login-cards/${urlParts[1]}`;
+        await deleteObject(key); // This is your S3 helper to delete
+        console.log("Deleted image from S3:", key);
+      } else {
+        console.warn("Invalid image URL format:", existingUserType.img);
+      }
+    }
+
+    // Step 3: Delete the UserType from DB
+    await UserType.findByIdAndDelete(id);
+
+    res
+      .status(200)
+      .json({ message: "UserType and image deleted successfully" });
   } catch (error) {
     console.error("Error deleting UserType:", error);
     res
@@ -216,38 +268,9 @@ export const deleteUserType = async (req, res) => {
   }
 };
 
-// export const changeLikeOrDislike = async (req, res) => {
-//   try {
-//     const { id } = req.body;
-
-//     if (!id) {
-//       return res.status(400).json({ message: "UserType ID is required." });
-//     }
-
-//     const userType = await UserType.findById(id);
-
-//     if (!userType) {
-//       return res.status(404).json({ message: "UserType not found." });
-//     }
-
-//     // Toggle the favourite field
-//     userType.favourite = !userType.favourite;
-//     await userType.save();
-
-//     return res.status(200).json({
-//       message: "Favourite status updated successfully.",
-//       data: userType,
-//     });
-//   } catch (error) {
-//     console.error("❌ Error toggling favourite:", error);
-//     return res.status(500).json({
-//       message: "Internal server error.",
-//       error: error.message,
-//     });
-//   }
-// };
-
 export const changeLikeOrDislike = async (req, res) => {
+  console.log("running");
+
   try {
     const { id } = req.params; // Assuming you're passing `id` in the route parameter
     const { cardId } = req.body;

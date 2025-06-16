@@ -1,4 +1,5 @@
 import YouTube from "../models/Youtube.model.js";
+import { deleteObject } from "../utils/aws/deleteObject.js";
 import { putObject } from "../utils/aws/putObject.js";
 import { uploadCloudinary, uploadToCloudinary } from "../utils/cloudnary.js";
 export const showMobileYoutubeLinks = async (req, res) => {
@@ -112,22 +113,70 @@ export const updateYoutubeLink = async (req, res) => {
   }
 };
 
+// export const deleteYoutubeLink = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+//     console.log(id, " YouTubeLink id");
+//     const islink = await YouTube.findById({ _id: id });
+//     console.log(islink, "link");
+
+//     if (!islink) {
+//       return res.status(404).json({ message: "link is not avelable" });
+//     }
+
+//     const deleteYoutubeLink = await YouTube.findByIdAndDelete(id);
+//     if (deleteYoutubeLink) {
+//       res.status(200).json({ message: "Youtube link Deleted sucessafully" });
+//     }
+//   } catch (error) {
+//     res.status(500).json({ message: error.message });
+//   }
+// };
+
 export const deleteYoutubeLink = async (req, res) => {
   try {
     const { id } = req.params;
-    console.log(id, " YouTubeLink id");
-    const islink = await YouTube.findById({ _id: id });
-    console.log(islink, "link");
+    console.log(id, "YouTubeLink ID");
 
-    if (!islink) {
-      return res.status(404).json({ message: "link is not avelable" });
+    // Step 1: Find the YouTube document first
+    const existingLink = await YouTube.findById(id);
+    if (!existingLink) {
+      return res.status(404).json({ message: "YouTube link not found" });
     }
 
-    const deleteYoutubeLink = await YouTube.findByIdAndDelete(id);
-    if (deleteYoutubeLink) {
-      res.status(200).json({ message: "Youtube link Deleted sucessafully" });
+    // Step 2: Delete thumbnail from S3 if it exists
+    if (existingLink.thumbnail) {
+      const urlParts = existingLink.thumbnail.split("youtube-cards/");
+      if (urlParts.length > 1) {
+        const key = `youtube-cards/${urlParts[1]}`;
+        await deleteObject(key); // Your S3 helper
+        console.log("Deleted thumbnail from S3:", key);
+      } else {
+        console.warn("Invalid thumbnail URL format:", existingLink.thumbnail);
+      }
     }
+
+    // Step 3: Delete the MongoDB document
+    await existingLink.deleteOne();
+
+    res
+      .status(200)
+      .json({ message: "YouTube link and thumbnail deleted successfully" });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("Error deleting YouTube link:", error);
+    res
+      .status(500)
+      .json({ message: "Internal server error", error: error.message });
+  }
+};
+
+export const youtubeLinks = async (req, res) => {
+  try {
+    const links = await YouTube.find().sort({ createdAt: -1 }); // Sort by newest first
+
+    res.status(200).json({ success: true, links });
+  } catch (error) {
+    console.error("Error fetching YouTube links:", error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };

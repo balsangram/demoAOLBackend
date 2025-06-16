@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import cors from "cors";
 import connectDB from "./src/config/db.js";
 import router from "./src/routes/router.js";
+// import router from "./src/routes/path.js";
 // import { liveLinkJob } from "./src/utils/cronJobs/liveUpScheduler.js";
 // import { jobNotification } from "./src/utils/cronJobs/noteficationUpScheduler.js";
 // import notificationRoutes from "./firebase.js";

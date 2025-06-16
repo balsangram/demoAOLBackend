@@ -3,6 +3,7 @@ import Direction from "../../models/direction/Direction.model.js";
 import { deleteObject } from "../../utils/aws/deleteObject.js";
 import { putObject } from "../../utils/aws/putObject.js";
 import { uploadToCloudinary } from "../../utils/cloudnary.js"; // Ensure this exists and works
+import translateText from "../../utils/translation.js";
 
 // export const add_direction = async (req, res) => {
 //   //   console.log(req.body, "Body");
@@ -183,6 +184,13 @@ export const add_direction = async (req, res) => {
       directionUserModel: directionUserModel || "Maps Tour only", // Use default if not provided
     });
 
+    let translatedName;
+    let translatedText;
+    if (language != "en") {
+      translatedName = await translateText(directionName, language);
+      translatedText = await translateText(audioDirectionText, language);
+    }
+
     // Save based on directionUserModel
     if (directionUserModel === "Tour and Maps") {
       // Handle audio upload for AudioTour
@@ -197,14 +205,16 @@ export const add_direction = async (req, res) => {
       // Prepare AudioTour document
       const newAudioTour = new AudioTour({
         language,
-        audioDirectionName: directionName, // Use directionName for consistency
+        audioDirectionName: translatedName ? translatedName : directionName, // Use directionName for consistency
         audioTourModel,
         audioDirectionImg: directionImg, // Reuse the same image
         audioLink,
         videoLink: videoLink || "", // Optional field
         longitude,
         latitude,
-        audioDirectionText,
+        audioDirectionText: translatedText
+          ? translatedText
+          : audioDirectionText,
         directionUserModel,
       });
 

@@ -3,6 +3,7 @@ import Direction from "../../models/direction/Direction.model.js";
 import { deleteObject } from "../../utils/aws/deleteObject.js";
 import { putObject } from "../../utils/aws/putObject.js";
 import { uploadToCloudinary } from "../../utils/cloudnary.js"; // Ensure this exists and works
+import translateText from "../../utils/translation.js";
 
 // export const add_audioTour = async (req, res) => {
 //   console.log("📦 Body:", req.body);
@@ -163,12 +164,16 @@ export const add_audioTour = async (req, res) => {
     }
 
     // Check uniqueness
-    const nameExists = await AudioTour.findOne({ audioDirectionName });
-    if (nameExists) {
-      return res.status(400).json({
-        message: "Audio Direction Name already exists.",
-      });
-    }
+   const nameExists = await AudioTour.findOne({
+  audioDirectionName,
+  language,
+});
+
+if (nameExists) {
+  return res.status(400).json({
+    message: "Audio Direction Name already exists in this language.",
+  });
+}
 
     if (directionUserModel === "Tour and Maps") {
       const directionNameExists = await Direction.findOne({
@@ -201,18 +206,24 @@ export const add_audioTour = async (req, res) => {
       );
       audioLink = audioUpload.url;
     }
+    let translatedName;
+    let translatedText;
+    if (language != "en") {
+      translatedName = await translateText(audioDirectionName, language);
+      translatedText = await translateText(audioDirectionText, language);
+    }
 
     // Create AudioTour document
     const newAudioTour = new AudioTour({
       language,
-      audioDirectionName,
+      audioDirectionName: translatedName ? translatedName : audioDirectionName,
       audioTourModel,
       audioDirectionImg,
       audioLink, // could be "" if not provided
       videoLink: videoLink || "", // optional field
       longitude,
       latitude,
-      audioDirectionText,
+      audioDirectionText: translatedText ? translatedText : audioDirectionText,
       directionUserModel: directionUserModel || "Audio Tour only",
     });
 

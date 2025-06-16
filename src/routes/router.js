@@ -28,6 +28,7 @@ import {
   showMobileYoutubeLinks,
   showWebYoutubeLinks,
   updateYoutubeLink,
+  youtubeLinks,
 } from "../controllers/youTube.controller.js";
 import {
   addAdvertisement,
@@ -171,7 +172,7 @@ router.get("/showAllCards/:headline", showAllCards);
 // router.post("/createCard", upload_V2.single("img"), createCard);
 router.post("/createCard", upload_V2.array("img"), createCard); //😊
 router.patch("/updateCard/:id", upload_V2.array("img"), updateCard); //😊
-router.delete("/removeCard/:id", removeCard);
+router.delete("/removeCard/:id", removeCard); //😊
 router.get("/card_search", cardSearch);
 
 //user Types
@@ -180,7 +181,7 @@ router.get("/userType/:id", singleuserType);
 router.get("/userTypeHome/:id", singleHomeuserType);
 router.post("/addUserType", upload_V2.array("img"), addUserType); //😊
 router.patch("/updateUSerType/:id", upload_V2.array("img"), updateUserType); //😊
-router.delete("/deleteUSerType/:id", deleteUserType);
+router.delete("/deleteUSerType/:id", deleteUserType); //😊
 
 // favorite
 router.post("/userType_importance/:id", changeLikeOrDislike);
@@ -206,7 +207,8 @@ router.patch(
   upload_V2.single("thumbnail"),
   updateYoutubeLink
 );
-router.delete("/deleteYoutubeLink/:id", deleteYoutubeLink);
+router.delete("/deleteYoutubeLink/:id", deleteYoutubeLink); //
+router.get("/all-youtube-links", youtubeLinks);
 
 // Advertising
 router.post(
