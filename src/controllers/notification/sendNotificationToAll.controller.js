@@ -65,6 +65,13 @@ export async function scheduleNotificationWithCron(
       console.log("🚀 ~ job ~ errors:", errors);
       for (const token of tokens) {
         try {
+          // Increment count for the user with this token
+          const result = await DeviceToken.findOneAndUpdate(
+            { token },
+            { $inc: { count: 1 } },
+            { upsert: true }
+          );
+          console.log("Update result:", result);
           const response = await admin.messaging().send({ ...message, token });
           results.push({ token, success: true, response });
           console.log(
@@ -72,9 +79,16 @@ export async function scheduleNotificationWithCron(
             response
           );
           // Increment count for the user with this token
-          await mongoose
-            .model("DeviceToken")
-            .updateOne({ token }, { $inc: { count: 1 } });
+          const count = await DeviceToken.updateOne(
+            { token },
+            { $inc: { count: 1 } },
+            { upsert: true }
+          );
+          console.log(count, "count 2");
+
+          // await mongoose
+          //   .model("DeviceToken")
+          //   .updateOne({ token }, { $inc: { count: 1 } });
         } catch (err) {
           errors.push({ token, error: err.message });
         }
@@ -102,51 +116,101 @@ export async function scheduleNotificationWithCron(
   }
 }
 
+// export async function scheduleNotificationWithoutCron(
+//   message,
+//   tokens,
+//   selectedIds
+// ) {
+//   try {
+//     // Schedule a job
+//     console.log(selectedIds, "tokens 😊");
+
+//     const results = [];
+//     const errors = [];
+//     for (const token of tokens) {
+//       try {
+//         const response = await admin.messaging().send({ ...message, token });
+//         results.push({ token, success: true, response });
+//         console.log(
+//           `✅ 👍 Notification sent to ${token} at ${dateIST.format()}:`,
+//           response
+//         );
+//         // Increment count for the user with this token
+//         const count = await DeviceToken.updateOne(
+//           { token },
+//           { $inc: { count: 1 } },
+//           { upsert: true }
+//         );
+//         console.log(count, "count");
+
+//         // await mongoose
+//         //   .model("DeviceToken")
+//         //   .updateOne({ token }, { $inc: { count: 1 } });
+//       } catch (err) {
+//         errors.push({ token, error: err.message });
+//       }
+//     }
+//     // for (const token of tokens) {
+//     //   try {
+//     //     const response = await admin.messaging().send({ ...message, token });
+//     //     results.push({ token, success: true, response });
+//     //     console.log(
+//     //       `✅ Notification sent to ${tokens} at ${dateIST.format()}:`,
+//     //       response
+//     //     );
+//     //     // Increment count for the user with this token
+//     //     await mongoose
+//     //       .model("DeviceToken")
+//     //       .updateOne({ token }, { $inc: { count: 1 } });
+//     //   } catch (err) {
+//     //     errors.push({ token, error: err.message });
+//     //   }
+//     // }
+//   } catch (err) {
+//     console.error(`❌ Failed to send notification:`, err.message);
+//   }
+// }
+
 export async function scheduleNotificationWithoutCron(
   message,
   tokens,
   selectedIds
 ) {
   try {
-    // Schedule a job
     console.log(selectedIds, "tokens 😊");
 
     const results = [];
     const errors = [];
+
     for (const token of tokens) {
+      console.log("Insideeeee");
+
       try {
+        // Increment count for the user with this token
+        const result = await DeviceToken.findOneAndUpdate(
+          { token },
+          { $inc: { count: 1 } },
+          { upsert: true }
+        );
+        console.log("Update result:", result);
         const response = await admin.messaging().send({ ...message, token });
+        console.log("response", response);
+
         results.push({ token, success: true, response });
+
         console.log(
           `✅ 👍 Notification sent to ${token} at ${dateIST.format()}:`,
           response
         );
-        // Increment count for the user with this token
-        await mongoose
-          .model("DeviceToken")
-          .updateOne({ token }, { $inc: { count: 1 } });
       } catch (err) {
         errors.push({ token, error: err.message });
       }
     }
-    // for (const token of tokens) {
-    //   try {
-    //     const response = await admin.messaging().send({ ...message, token });
-    //     results.push({ token, success: true, response });
-    //     console.log(
-    //       `✅ Notification sent to ${tokens} at ${dateIST.format()}:`,
-    //       response
-    //     );
-    //     // Increment count for the user with this token
-    //     await mongoose
-    //       .model("DeviceToken")
-    //       .updateOne({ token }, { $inc: { count: 1 } });
-    //   } catch (err) {
-    //     errors.push({ token, error: err.message });
-    //   }
-    // }
+
+    return { results, errors };
   } catch (err) {
     console.error(`❌ Failed to send notification:`, err.message);
+    return { results: [], errors: [{ error: err.message }] };
   }
 }
 
@@ -211,6 +275,14 @@ export const sendNotificationToAll = async (req, res) => {
           console.log("inside the cron job to sedn notification to all api");
           await admin.messaging().send(message);
           // await sentNotification.save();
+
+          // ✅ Increment count for all users
+          const result = await DeviceToken.updateMany(
+            {},
+            { $inc: { count: 1 } }
+          );
+          console.log("📈 Device count updated for all users:", result);
+
           job.stop();
         },
         null,
@@ -220,6 +292,8 @@ export const sendNotificationToAll = async (req, res) => {
     } else {
       await admin.messaging().send(message);
       // await sentNotification.save();
+      const result = await DeviceToken.updateMany({}, { $inc: { count: 1 } });
+      console.log("📈 Device count updated for all users:", result);
     }
 
     await sentNotification.save();
