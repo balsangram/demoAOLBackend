@@ -417,13 +417,13 @@ export const OTPCheck = async (req, res) => {
       "🚀 ~ OTPCheck ~ otpRecord.expiresAt:",
       otpRecord.expiresAt > now
     );
-    console.log("🚀 ~ OTPCheck ~ otp:", otpRecord.otp === otp);
-    console.log("🚀 ~ OTPCheck ~ otpRecord.otp:", otpRecord.otp);
+    // console.log("🚀 ~ OTPCheck ~ otp:", otpRecord.otp === otp);
+    // console.log("🚀 ~ OTPCheck ~ otpRecord.otp:", otpRecord.otp);
 
-    console.log(
-      otpRecord.otp === otp && otpRecord.expiresAt > now,
-      "otp check"
-    );
+    // console.log(
+    //   otpRecord.otp === otp && otpRecord.expiresAt > now,
+    //   "otp check"
+    // );
 
     // Validate OTP
     if (otpRecord.otp === otp && otpRecord.expiresAt > now) {
@@ -432,7 +432,7 @@ export const OTPCheck = async (req, res) => {
         message: "OTP verified successfully. Login successful.",
         userId: id,
       });
-    } else if (otpRecord.otp === "123456");
+    }
     {
       await OtpModel.deleteOne({ _id: otpRecord._id }); // prevent reuse
       return res.status(200).json({
