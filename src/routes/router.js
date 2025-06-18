@@ -1,6 +1,9 @@
 import express from "express";
 import { loginAdmin, registerAdmin } from "../controllers/admin.controller.js";
-import { displayHeadlines } from "../controllers/head.controller.js";
+import {
+  addHeadlines,
+  displayHeadlines,
+} from "../controllers/head.controller.js";
 import {
   cardSearch,
   createCard,
@@ -166,6 +169,7 @@ router.patch("/logout", logoutuser);
 
 // Headings
 router.get("/displayHeading", displayHeadlines);
+router.post("/addHeading", addHeadlines);
 
 //containers
 router.get("/showAllCards/:headline", showAllCards);

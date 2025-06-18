@@ -206,6 +206,7 @@ export const get_LiveNewUpdates = async (req, res) => {
   try {
     const updates = await LiveNewUpdate.find().sort({ createdAt: -1 });
 
+    console.log("🚀 ~ constget_LiveNewUpdates= ~ updates:", updates);
     if (!updates || updates.length === 0) {
       return res.status(200).json({
         message: "No live updates available.",
