@@ -421,8 +421,7 @@ export const OTPCheck = async (req, res) => {
     console.log("🚀 ~ OTPCheck ~ otpRecord.otp:", otpRecord.otp);
 
     console.log(
-      (otpRecord.otp === otp && otpRecord.expiresAt > now) ||
-        otpRecord.otp === "123456",
+      otpRecord.otp === otp && otpRecord.expiresAt > now,
       "otp check"
     );
 
