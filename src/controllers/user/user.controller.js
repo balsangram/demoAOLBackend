@@ -386,65 +386,112 @@ export const registerUser = async (req, res) => {
   }
 };
 
+// export const OTPCheck = async (req, res) => {
+//   try {
+//     // console.log("hello");
+
+//     // console.log(req.params, "req.params");
+
+//     const { id } = req.params;
+//     // console.log("🚀 ~ OTPCheck ~ id:", id);
+//     const { otp, type } = req.body;
+//     // console.log("🚀 ~ OTPCheck ~  otp, type:", otp, type);
+
+//     if (!otp || !type) {
+//       return res.status(400).json({ message: "OTP and type are required." });
+//     }
+//     // console.log(id, "id");
+
+//     const otpRecord = await OtpModel.findOne({ userid: id });
+
+//     // console.log("🚀 ~ OTPCheck ~ otpRecord:", otpRecord);
+//     if (!otpRecord) {
+//       return res
+//         .status(404)
+//         .json({ message: "No OTP found or it has expired." });
+//     }
+
+//     const now = new Date();
+
+//     // console.log(
+//     //   "🚀 ~ OTPCheck ~ otpRecord.expiresAt:",
+//     //   otpRecord.expiresAt > now
+//     // );
+//     // console.log("🚀 ~ OTPCheck ~ otp:", otpRecord.otp === otp);
+//     // console.log("🚀 ~ OTPCheck ~ otpRecord.otp:", otpRecord.otp);
+
+//     // console.log(
+//     //   otpRecord.otp === otp && otpRecord.expiresAt > now,
+//     //   "otp check"
+//     // );
+
+//     // Validate OTP
+//     if (otpRecord.otp === otp && otpRecord.expiresAt > now) {
+//       await OtpModel.deleteOne({ _id: otpRecord._id }); // prevent reuse
+//       return res.status(200).json({
+//         message: "OTP verified successfully. Login successful.",
+//         userId: id,
+//       });
+//     }
+//     {
+//       await OtpModel.deleteOne({ _id: otpRecord._id }); // prevent reuse
+//       return res.status(200).json({
+//         message: "OTP verified successfully. Login successful.",
+//         userId: id,
+//       });
+//     }
+
+//     // If OTP expired or doesn't match
+//     const reason = otpRecord.expiresAt <= now ? "expired" : "invalid";
+//     console.log(reason, "reason");
+
+//     return res.status(401).json({ message: `OTP is ${reason}.` });
+//   } catch (error) {
+//     console.error("❌ OTP Check error:", error);
+//     return res.status(500).json({
+//       message: "Failed to verify OTP.",
+//       error: error.message,
+//     });
+//   }
+// };
+
 export const OTPCheck = async (req, res) => {
   try {
-    console.log("hello");
-
-    console.log(req.params, "req.params");
-
     const { id } = req.params;
-    // console.log("🚀 ~ OTPCheck ~ id:", id);
     const { otp, type } = req.body;
-    // console.log("🚀 ~ OTPCheck ~  otp, type:", otp, type);
 
+    // Validate input
+    if (!id) {
+      return res.status(400).json({ message: "User ID is required." });
+    }
     if (!otp || !type) {
       return res.status(400).json({ message: "OTP and type are required." });
     }
-    console.log(id, "id");
 
+    // Find OTP record
     const otpRecord = await OtpModel.findOne({ userid: id });
-
-    console.log("🚀 ~ OTPCheck ~ otpRecord:", otpRecord);
     if (!otpRecord) {
       return res
         .status(404)
         .json({ message: "No OTP found or it has expired." });
     }
 
-    const now = new Date();
-
-    console.log(
-      "🚀 ~ OTPCheck ~ otpRecord.expiresAt:",
-      otpRecord.expiresAt > now
-    );
-    // console.log("🚀 ~ OTPCheck ~ otp:", otpRecord.otp === otp);
-    // console.log("🚀 ~ OTPCheck ~ otpRecord.otp:", otpRecord.otp);
-
-    // console.log(
-    //   otpRecord.otp === otp && otpRecord.expiresAt > now,
-    //   "otp check"
-    // );
+    // Get current UTC time
+    const now = new Date(); // UTC by default in MongoDB comparisons
 
     // Validate OTP
     if (otpRecord.otp === otp && otpRecord.expiresAt > now) {
-      await OtpModel.deleteOne({ _id: otpRecord._id }); // prevent reuse
-      return res.status(200).json({
-        message: "OTP verified successfully. Login successful.",
-        userId: id,
-      });
-    }
-    {
-      await OtpModel.deleteOne({ _id: otpRecord._id }); // prevent reuse
+      // OTP is valid and not expired
+      await OtpModel.deleteOne({ _id: otpRecord._id }); // Prevent reuse
       return res.status(200).json({
         message: "OTP verified successfully. Login successful.",
         userId: id,
       });
     }
 
-    // If OTP expired or doesn't match
+    // OTP is invalid or expired
     const reason = otpRecord.expiresAt <= now ? "expired" : "invalid";
-    console.log(reason, "reason");
-
+    console.log(`OTP verification failed: ${reason}`);
     return res.status(401).json({ message: `OTP is ${reason}.` });
   } catch (error) {
     console.error("❌ OTP Check error:", error);
