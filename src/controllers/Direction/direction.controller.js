@@ -433,3 +433,90 @@ export const getSingelCard = async (req, res) => {
     res.status(500).json({ message: "Failed to fetch the card" });
   }
 };
+
+export const getNamesTranslated = async (req, res) => {
+  try {
+    const { directionusertype } = req.params;
+    const { language } = req.body;
+
+    console.log("🚀 ~ directionusertype:", directionusertype);
+    console.log("🌐 ~ language:", language);
+
+    let filter = {};
+
+    if (directionusertype === "Visitor") {
+      filter = { directionusertype: { $in: ["Visitor", "Both"] } };
+    } else if (directionusertype === "Participant") {
+      filter = { directionusertype: { $in: ["Participant", "Both"] } };
+    } else {
+      return res.status(400).json({ error: "Invalid direction user type." });
+    }
+
+    // Fetch only the required fields
+    const directions = await Direction.find(
+      filter,
+      "directionName directionusertype"
+    );
+
+    // Translate if language is specified and not English
+    if (language && language !== "en") {
+      const translatedDirections = await Promise.all(
+        directions.map(async (dir) => {
+          const translatedName = await translateText(
+            dir.directionName,
+            language
+          );
+          return {
+            ...dir.toObject(),
+            directionName: translatedName,
+          };
+        })
+      );
+      return res.status(200).json(translatedDirections);
+    }
+
+    // Return untranslated if no translation needed
+    res.status(200).json(directions);
+  } catch (error) {
+    console.error("Error fetching directions:", error);
+    res.status(500).json({ error: "Server error while fetching directions." });
+  }
+};
+
+export const getSingelCardTranslated = async (req, res) => {
+  const { cardName } = req.params;
+  const { language } = req.body;
+
+  try {
+    // Find the card by name
+    const direction = await Direction.findOne({ directionName: cardName });
+
+    if (!direction) {
+      return res.status(404).json({ message: "Card not found" });
+    }
+
+    if (language && language !== "en") {
+      const translatedName = await translateText(
+        direction.directionName,
+        language
+      );
+      const translatedDescription = direction.directionDescription
+        ? await translateText(direction.directionDescription, language)
+        : "";
+
+      const translatedCard = {
+        ...direction.toObject(),
+        directionName: translatedName,
+        directionDescription: translatedDescription,
+      };
+
+      return res.status(200).json(translatedCard);
+    }
+
+    // No translation needed — return original
+    res.status(200).json(direction);
+  } catch (error) {
+    console.error("Error fetching translated card:", error);
+    res.status(500).json({ message: "Failed to fetch the card" });
+  }
+};

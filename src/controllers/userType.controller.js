@@ -6,6 +6,7 @@ import Card from "../models/Card.model.js";
 import YouTube from "../models/Youtube.model.js";
 import { putObject } from "../utils/aws/putObject.js";
 import { deleteObject } from "../utils/aws/deleteObject.js";
+import translateText from "../utils/translation.js";
 // import { parse } from "dotenv";
 // Show All Cards
 export const userType = async (req, res) => {
@@ -562,6 +563,84 @@ export const favouriteHomeCardDisplay = async (req, res) => {
     console.log("🚀 ~ favouriteCardDisplay ~ userTypes:", userTypes);
 
     res.status(200).json({ userTypes });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const favouriteCardDisplayLanguage = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { language } = req.body;
+
+    console.log(language, "language 😁");
+
+    // 1. Find device token by ID
+    const user = await DeviceToken.findById(id).select("userTypes");
+    if (!user) {
+      return res.status(404).json({ message: "DeviceToken not found" });
+    }
+
+    const userTypesIds = user.userTypes;
+    console.log("🚀 ~ userTypes IDs:", userTypesIds);
+
+    // 2. Get userType documents (e.g., card names)
+    const userTypes = await UserType.find({ _id: { $in: userTypesIds } });
+
+    let translatedUserTypes = userTypes;
+
+    // 3. Translate if language is not English
+    if (language && language !== "en") {
+      // Assuming each userType has a `name` field to translate
+      translatedUserTypes = await Promise.all(
+        userTypes.map(async (type) => {
+          const translatedName = await translateText(type.name, language);
+          return {
+            ...type.toObject(),
+            name: translatedName,
+          };
+        })
+      );
+    }
+
+    console.log("🚀 ~ Translated userTypes:", translatedUserTypes);
+
+    // 4. Send response
+    res.status(200).json({ userTypes: translatedUserTypes });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const favouriteHomeCardDisplayLanguage = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { language } = req.body;
+
+    const user = await DeviceToken.findById(id).select("CardTypes");
+    if (!user) {
+      return res.status(404).json({ message: "DeviceToken not found" });
+    }
+
+    const cardTypeIds = user.CardTypes;
+    const cards = await Card.find({ _id: { $in: cardTypeIds } });
+
+    let translatedCards = cards;
+
+    if (language && language !== "en") {
+      // Translate card names if the requested language is not English
+      translatedCards = await Promise.all(
+        cards.map(async (card) => {
+          const translatedName = await translateText(card.name, language);
+          return {
+            ...card.toObject(),
+            name: translatedName,
+          };
+        })
+      );
+    }
+
+    res.status(200).json({ userTypes: translatedCards });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

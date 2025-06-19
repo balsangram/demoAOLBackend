@@ -19,7 +19,9 @@ import {
   changeStaticLikeOrDislike,
   deleteUserType,
   favouriteCardDisplay,
+  favouriteCardDisplayLanguage,
   favouriteHomeCardDisplay,
+  favouriteHomeCardDisplayLanguage,
   singleHomeuserType,
   singleuserType,
   updateUserType,
@@ -98,7 +100,9 @@ import {
   delete_direction,
   get_direction,
   getNames,
+  getNamesTranslated,
   getSingelCard,
+  getSingelCardTranslated,
   update_direction,
 } from "../controllers/Direction/direction.controller.js";
 import {
@@ -143,6 +147,7 @@ import {
   update_audioTour,
 } from "../controllers/Direction/audiotour.controller.js";
 import AudioTour from "../models/direction/AudioTour.model.js";
+import { languages } from "translatte";
 
 //using multer for file handeling
 const storage = multer.memoryStorage();
@@ -194,6 +199,15 @@ router.post("/staticCard_importance/:id", changeStaticLikeOrDislike);
 
 router.get("/displayFavouriteInternal/:id", favouriteCardDisplay);
 router.get("/displayFavouriteHome/:id", favouriteHomeCardDisplay);
+// favourite language
+router.post(
+  "/displayFavouriteInternal/language/:id",
+  favouriteCardDisplayLanguage
+);
+router.post(
+  "/displayFavouriteHome/language/:id",
+  favouriteHomeCardDisplayLanguage
+);
 // router.get("/displayFavouriteStatic/:id", favouriteStaticCardDisplay);
 
 //actions
@@ -356,6 +370,14 @@ router.delete("/delete_direction/:id", delete_direction);
 
 router.get("/get_direction_names/:directionusertype", getNames);
 router.get("/get_perticular_card/:cardName", getSingelCard);
+
+// languages
+
+router.post(
+  "/get_direction_names/language/:directionusertype",
+  getNamesTranslated
+);
+router.post("/get_perticular_card/language/:cardName", getSingelCardTranslated);
 
 // audio tour
 router.get("/display_audioTour", get_audioTour);
