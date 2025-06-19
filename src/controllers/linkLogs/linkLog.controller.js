@@ -173,7 +173,7 @@ export const addLinkLog = async (req, res) => {
 
     res.status(200).json({
       message: "Click logged",
-      clickedAt: istTime.toISOString(), // Return IST time in response
+      istTime, // Return IST time in response
     });
   } catch (error) {
     console.error(error);
