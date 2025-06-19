@@ -139,17 +139,42 @@ export const displayLinkLog = async (req, res) => {
   }
 };
 
+// export const addLinkLog = async (req, res) => {
+//   const { cardId, userId } = req.body;
+//   console.log("🚀 ~ addHomeLinkLog ~ req.body:", req.body);
+
+//   try {
+//     await CardClick.create({
+//       card: cardId,
+//       user: userId,
+//     });
+
+//     res.status(200).json({ message: "Click logged" }, clickedAt);
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ error: "Failed to log click" });
+//   }
+// };
+
 export const addLinkLog = async (req, res) => {
   const { cardId, userId } = req.body;
   console.log("🚀 ~ addHomeLinkLog ~ req.body:", req.body);
 
   try {
+    // Get current time in IST
+    const now = new Date();
+    const istTime = new Date(now.getTime() + 5.5 * 60 * 60 * 1000); // UTC+5:30
+
     await CardClick.create({
       card: cardId,
       user: userId,
+      clickedAt: istTime, // Store IST time
     });
 
-    res.status(200).json({ message: "Click logged" });
+    res.status(200).json({
+      message: "Click logged",
+      clickedAt: istTime.toISOString(), // Return IST time in response
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Failed to log click" });
