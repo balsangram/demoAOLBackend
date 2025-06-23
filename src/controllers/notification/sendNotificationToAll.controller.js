@@ -5,9 +5,33 @@ import Group from "../../models/notification/Group.model.js";
 import Notification from "../../models/notification/Notification.model.js";
 import { CronJob } from "cron";
 
+// function convertDateTimeFormat(input) {
+//   console.log("inside the function");
+  
+//   try {
+//     // Parse input as UTC, supporting multiple formats
+//     const dateUTC = moment.utc(input, [
+//       moment.ISO_8601,
+//       "YYYY-MM-DDTHH:mm",
+//       "YYYY-MM-DD HH:mm",
+//     ], true);
+    
+//     if (!dateUTC.isValid()) {
+//       throw new Error("Invalid date format");
+//     }
+
+//     const dateIST = moment(dateUTC).tz("Asia/Kolkata");
+//     console.log("🚀 ~ convertDateTimeFormat ~ input:", input, "dateIST:", dateIST.format(), "dateUTC:", dateUTC.format());
+//     return dateUTC.toDate(); // Store as UTC in database
+//   } catch (error) {
+//     console.error("❌ Error parsing NotificationTime:", error.message);
+//     return moment().utc().toDate(); // Fallback to current UTC time
+//   }
+// }
+
 function convertDateTimeFormat(input) {
   console.log("inside the function");
-  
+
   try {
     // Parse input as UTC, supporting multiple formats
     const dateUTC = moment.utc(input, [
@@ -15,24 +39,33 @@ function convertDateTimeFormat(input) {
       "YYYY-MM-DDTHH:mm",
       "YYYY-MM-DD HH:mm",
     ], true);
-    
+
     if (!dateUTC.isValid()) {
       throw new Error("Invalid date format");
     }
 
+    // Convert to IST for logging (optional)
     const dateIST = moment(dateUTC).tz("Asia/Kolkata");
-    console.log("🚀 ~ convertDateTimeFormat ~ input:", input, "dateIST:", dateIST.format(), "dateUTC:", dateUTC.format());
-    return dateUTC.toDate(); // Store as UTC in database
+
+    // Subtract 5 hours 30 minutes
+    const adjustedUTC = dateUTC.clone().subtract(5, "hours").subtract(30, "minutes");
+
+    console.log("🚀 ~ convertDateTimeFormat ~ input:", input, 
+                "dateIST:", dateIST.format(), 
+                "adjustedUTC:", adjustedUTC.format());
+
+    return adjustedUTC.toDate(); // Store as adjusted UTC in database
   } catch (error) {
     console.error("❌ Error parsing NotificationTime:", error.message);
     return moment().utc().toDate(); // Fallback to current UTC time
   }
 }
 
+
 export async function scheduleNotificationWithCron(scheduleDate, message, tokens, notificationId) {
   try {
-    // const dateIST = moment(scheduleDate).tz("Asia/Kolkata");
-    const dateIST = moment(scheduleDate).tz("Asia/Kolkata").subtract(5, "hours").subtract(30, "minutes");
+    const dateIST = moment(scheduleDate).tz("Asia/Kolkata");
+    // const dateIST = moment(scheduleDate).tz("Asia/Kolkata").subtract(5, "hours").subtract(30, "minutes");
 
     console.log("🚀 ~ scheduleNotificationWithCron ~ scheduling for:", dateIST.format());
 
