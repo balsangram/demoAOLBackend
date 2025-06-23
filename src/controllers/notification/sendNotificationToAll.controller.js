@@ -32,7 +32,7 @@ function convertDateTimeFormat(input) {
 export async function scheduleNotificationWithCron(scheduleDate, message, tokens, notificationId) {
   try {
     // const dateIST = moment(scheduleDate).tz("Asia/Kolkata");
-    const dateIST = moment(scheduleDate).tz("Asia/Kolkata").add(5, "hours").add(30, "minutes");
+    const dateIST = moment(scheduleDate).tz("Asia/Kolkata").subtract(5, "hours").subtract(30, "minutes");
 
     console.log("🚀 ~ scheduleNotificationWithCron ~ scheduling for:", dateIST.format());
 
