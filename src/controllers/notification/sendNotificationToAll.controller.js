@@ -93,6 +93,7 @@ function createNotificationMessage(title, body) {
 //   }
 // }
 async function scheduleNotificationWithCron(scheduleDate, message, tokens, notificationId) {
+  console.log("1😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁");
   try {
     const dateIST = moment.utc(scheduleDate).tz("Asia/Kolkata");
     if (dateIST.isBefore(moment().tz("Asia/Kolkata").add(5, "seconds"))) {
