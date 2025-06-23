@@ -93,12 +93,11 @@ function createNotificationMessage(title, body) {
 //   }
 // }
 async function scheduleNotificationWithCron(scheduleDate, message, tokens, notificationId) {
-  console.log("1😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁");
   try {
-    const dateIST = moment.utc(scheduleDate).tz("Asia/Kolkata");
-    console.log(moment() ,"dateIST 👍👍👍👍👍👍👍👍 -" ,dateIST);
-    
-    if (dateIST.isBefore(moment.utc().tz("Asia/Kolkata").add(5, "seconds"))) {
+    const dateIST = moment.tz(scheduleDate, "HH:mm", "Asia/Kolkata");
+    const nowIST = moment().tz("Asia/Kolkata");
+
+    if (dateIST.isBefore(nowIST.add(5, "seconds"))) {
       console.log("Scheduled time is in the past, notification not scheduled");
       return;
     }
@@ -106,10 +105,8 @@ async function scheduleNotificationWithCron(scheduleDate, message, tokens, notif
     scheduleJob(dateIST.toDate(), async () => {
       const results = [];
       const errors = [];
-console.log("4");
 
       for (const token of tokens) {
-
         try {
           const response = await admin.messaging().send({ ...message, token });
           results.push({ token, success: true, response });
@@ -130,7 +127,6 @@ console.log("4");
     console.error("Failed to schedule notification:", error.message);
   }
 }
-
 // Send immediate notification
 async function scheduleNotificationWithoutCron(message, tokens, notificationId) {
   const results = [];
