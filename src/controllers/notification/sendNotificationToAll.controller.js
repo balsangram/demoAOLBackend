@@ -96,9 +96,9 @@ async function scheduleNotificationWithCron(scheduleDate, message, tokens, notif
   console.log("1😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁");
   try {
     const dateIST = moment.utc(scheduleDate).tz("Asia/Kolkata");
-    console.log(moment() ,"dateIST 👍👍👍👍👍👍👍👍" ,dateIST);
+    console.log(moment() ,"dateIST 👍👍👍👍👍👍👍👍 -" ,dateIST);
     
-    if (dateIST.isBefore(moment().tz("Asia/Kolkata").add(5, "seconds"))) {
+    if (dateIST.isBefore(moment.utc().tz("Asia/Kolkata").add(5, "seconds"))) {
       console.log("Scheduled time is in the past, notification not scheduled");
       return;
     }
