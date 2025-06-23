@@ -94,7 +94,8 @@ function createNotificationMessage(title, body) {
 // }
 async function scheduleNotificationWithCron(scheduleDate, message, tokens, notificationId) {
   try {
-    const dateIST = moment.tz(scheduleDate, moment.ISO_8601, "Asia/Kolkata");
+    // const dateIST = moment.tz(scheduleDate, moment.ISO_8601, "Asia/Kolkata");
+    const dateIST = moment.tz(scheduleDate, "YYYY-MM-DDTHH:mm", "Asia/Kolkata");
     const nowIST = moment().tz("Asia/Kolkata");
 
     if (dateIST.isBefore(nowIST.add(5, "seconds"))) {
