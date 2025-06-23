@@ -131,10 +131,10 @@ export const sendGroupNotification = async (req, res) => {
   let { title, body, groupName, NotificationTime } = req.body;
   console.log('Group notification request:', req.body);
 
-  if(NotificationTime) {
-     NotificationTime = NotificationTime - (5.5 * 60 * 60 * 1000); // 5 hours 30 minutes in ms
-  }
-  console.log(NotificationTime,"NotificationTime");
+  // if(NotificationTime) {
+  //    NotificationTime = NotificationTime - (5.5 * 60 * 60 * 1000); // 5 hours 30 minutes in ms
+  // }
+  console.log(NotificationTime,"NotificationTime 👍👍👍👍👍");
   
 
   // Input validation
@@ -240,9 +240,9 @@ export const sendGroupNotification = async (req, res) => {
 export const sendSingleNotification = async (req, res) => {
   let { title, body, selectedIds, NotificationTime } = req.body;
   console.log('Single notification request:', req.body);
-  if(NotificationTime) {
-     NotificationTime = NotificationTime - (5.5 * 60 * 60 * 1000); // 5 hours 30 minutes in ms
-  }
+  // if(NotificationTime) {
+  //    NotificationTime = NotificationTime - (5.5 * 60 * 60 * 1000); // 5 hours 30 minutes in ms
+  // }
   console.log(NotificationTime,"NotificationTime");
   
 
