@@ -23,7 +23,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/aol", router);
 
 app.get("/", (req, res) => {
-  res.send("Hello, this project is Art Of Living 25-06-23:17:20 👍");
+  res.send("Hello, this project is Art Of Living 25-06-23:17:20 😊");
 });
 
 const PORT = process.env.PORT || 5000;
