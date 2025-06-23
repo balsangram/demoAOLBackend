@@ -128,7 +128,7 @@ async function scheduleNotificationWithoutCron(message, tokens, notificationId) 
 
 // Send group notification
 export const sendGroupNotification = async (req, res) => {
-  const { title, body, groupName, NotificationTime } = req.body;
+  let { title, body, groupName, NotificationTime } = req.body;
   console.log('Group notification request:', req.body);
 
   if(NotificationTime) {
@@ -238,7 +238,7 @@ export const sendGroupNotification = async (req, res) => {
 
 // Send single notification
 export const sendSingleNotification = async (req, res) => {
-  const { title, body, selectedIds, NotificationTime } = req.body;
+  let { title, body, selectedIds, NotificationTime } = req.body;
   console.log('Single notification request:', req.body);
   if(NotificationTime) {
      NotificationTime = NotificationTime - (5.5 * 60 * 60 * 1000); // 5 hours 30 minutes in ms
