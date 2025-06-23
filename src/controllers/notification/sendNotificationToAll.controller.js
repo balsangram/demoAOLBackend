@@ -55,8 +55,8 @@ async function scheduleNotificationWithCron(scheduleDate, message, tokens, notif
   console.log(scheduleDate,"scheduleDate");
   
   try {
-    // const dateIST = moment(scheduleDate).tz(IST_TIMEZONE);
-    const dateIST = moment(scheduleDate).tz("Asia/Kolkata");
+    const dateIST = scheduleDate;
+    // const dateIST = moment(scheduleDate).tz("Asia/Kolkata");
     console.log('Scheduling notification for:', dateIST.format());
 
     if (dateIST.isBefore(moment())) {
