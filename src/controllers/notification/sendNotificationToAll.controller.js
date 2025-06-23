@@ -96,6 +96,8 @@ async function scheduleNotificationWithCron(scheduleDate, message, tokens, notif
   console.log("1😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁");
   try {
     const dateIST = moment.utc(scheduleDate).tz("Asia/Kolkata");
+    console.log(moment() ,"dateIST 👍👍👍👍👍👍👍👍" ,dateIST);
+    
     if (dateIST.isBefore(moment().tz("Asia/Kolkata").add(5, "seconds"))) {
       console.log("Scheduled time is in the past, notification not scheduled");
       return;
@@ -104,8 +106,10 @@ async function scheduleNotificationWithCron(scheduleDate, message, tokens, notif
     scheduleJob(dateIST.toDate(), async () => {
       const results = [];
       const errors = [];
+console.log("4");
 
       for (const token of tokens) {
+
         try {
           const response = await admin.messaging().send({ ...message, token });
           results.push({ token, success: true, response });
