@@ -236,7 +236,7 @@ export const sendGroupNotification = async (req, res) => {
   }
 };
 
-// Send single notification
+// Send single notification m
 export const sendSingleNotification = async (req, res) => {
   let { title, body, selectedIds, NotificationTime } = req.body;
   console.log('Single notification request:', req.body);
