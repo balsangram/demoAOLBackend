@@ -52,12 +52,12 @@ function createNotificationMessage(title, body) {
 
 // Schedule notification with cron
 async function scheduleNotificationWithCron(scheduleDate, message, tokens, notificationId) {
-  console.log(scheduleDate,"scheduleDate");
+  console.log(scheduleDate,"scheduleDate 😁");
   
   try {
     const dateIST = scheduleDate;
     // const dateIST = moment(scheduleDate).tz("Asia/Kolkata");
-    console.log('Scheduling notification for:', dateIST.format());
+    // console.log('Scheduling notification for:', dateIST.format());
 
     if (dateIST.isBefore(moment())) {
       console.log('Scheduled time is in the past, notification not scheduled');
@@ -72,7 +72,7 @@ async function scheduleNotificationWithCron(scheduleDate, message, tokens, notif
         try {
           const response = await admin.messaging().send({ ...message, token });
           results.push({ token, success: true, response });
-          console.log(`Notification sent to ${token} at ${dateIST.format()}`);
+          // console.log(`Notification sent to ${token} at ${dateIST.format()}`);
 
           await DeviceToken.findOneAndUpdate(
             { token },
