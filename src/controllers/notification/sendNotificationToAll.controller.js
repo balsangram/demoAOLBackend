@@ -29,52 +29,82 @@ import { CronJob } from "cron";
 //   }
 // }
 
+
+// Constants
+const IST_TIMEZONE = 'Asia/Kolkata';
+const SUPPORTED_DATE_FORMATS = [
+  moment.ISO_8601,
+  'YYYY-MM-DDTHH:mm',
+  'YYYY-MM-DD HH:mm'
+];
+
+// Utility function to convert and adjust date-time
 function convertDateTimeFormat(input) {
-  console.log("inside the function");
+  console.log('Processing date-time conversion');
 
   try {
-    // Parse input as UTC, supporting multiple formats
-    const dateUTC = moment.utc(input, [
-      moment.ISO_8601,
-      "YYYY-MM-DDTHH:mm",
-      "YYYY-MM-DD HH:mm",
-    ], true);
-
+    // Parse input as UTC
+    const dateUTC = moment.utc(input, SUPPORTED_DATE_FORMATS, true);
+    
     if (!dateUTC.isValid()) {
-      throw new Error("Invalid date format");
+      throw new Error('Invalid date format');
     }
 
-    // Convert to IST for logging (optional)
-    const dateIST = moment(dateUTC).tz("Asia/Kolkata");
+    // Adjust time by subtracting 5 hours 30 minutes
+    const adjustedUTC = dateUTC.clone().subtract(5, 'hours').subtract(30, 'minutes');
+    const dateIST = moment(adjustedUTC).tz(IST_TIMEZONE);
 
-    // Subtract 5 hours 30 minutes
-    const adjustedUTC = dateUTC.clone().subtract(5, "hours").subtract(30, "minutes");
+    console.log('Date conversion details:', {
+      input,
+      dateIST: dateIST.format(),
+      adjustedUTC: adjustedUTC.format()
+    });
 
-    console.log("🚀 ~ convertDateTimeFormat ~ input:", input, 
-                "dateIST:", dateIST.format(), 
-                "adjustedUTC:", adjustedUTC.format());
-
-    return adjustedUTC.toDate(); // Store as adjusted UTC in database
+    return adjustedUTC.toDate();
   } catch (error) {
-    console.error("❌ Error parsing NotificationTime:", error.message);
-    return moment().utc().toDate(); // Fallback to current UTC time
+    console.error('Error parsing date-time:', error.message);
+    return moment().utc().toDate(); // Fallback to current UTC
   }
 }
 
+// Common notification message structure
+function createNotificationMessage(title, body) {
+  return {
+    notification: { title, body },
+    android: { priority: 'high' },
+    apns: {
+      payload: {
+        aps: {
+          sound: 'default',
+          'content-available': 1
+        }
+      }
+    },
+    webpush: {
+      notification: {
+        title,
+        body,
+        icon: 'icon.png'
+      },
+      fcm_options: {
+        link: 'https://yourwebsite.com'
+      }
+    }
+  };
+}
 
-export async function scheduleNotificationWithCron(scheduleDate, message, tokens, notificationId) {
+// Schedule notification with cron
+async function scheduleNotificationWithCron(scheduleDate, message, tokens, notificationId) {
   try {
-    const dateIST = moment(scheduleDate).tz("Asia/Kolkata");
-    // const dateIST = moment(scheduleDate).tz("Asia/Kolkata").subtract(5, "hours").subtract(30, "minutes");
-
-    console.log("🚀 ~ scheduleNotificationWithCron ~ scheduling for:", dateIST.format());
+    const dateIST = moment(scheduleDate).tz(IST_TIMEZONE);
+    console.log('Scheduling notification for:', dateIST.format());
 
     if (dateIST.isBefore(moment())) {
-      console.log("⚠️ Scheduled time is in the past, notification not sent.");
+      console.log('Scheduled time is in the past, notification not scheduled');
       return;
     }
 
-    const job = scheduleJob(dateIST.toDate(), async function () {
+    scheduleJob(dateIST.toDate(), async () => {
       const results = [];
       const errors = [];
 
@@ -82,319 +112,628 @@ export async function scheduleNotificationWithCron(scheduleDate, message, tokens
         try {
           const response = await admin.messaging().send({ ...message, token });
           results.push({ token, success: true, response });
-          console.log(`✅ Notification sent to ${token} at ${dateIST.format()}:`, response);
+          console.log(`Notification sent to ${token} at ${dateIST.format()}`);
 
-          // Update device token count
           await DeviceToken.findOneAndUpdate(
             { token },
             { $inc: { count: 1 } },
             { upsert: true }
           );
-        } catch (err) {
-          errors.push({ token, error: err.message });
-          console.error(`❌ Failed to send to ${token}:`, err.message);
+        } catch (error) {
+          errors.push({ token, error: error.message });
+          console.error(`Failed to send to ${token}:`, error.message);
         }
       }
 
-      // Update notification status
       await Notification.findByIdAndUpdate(notificationId, { sent: true });
-      console.log("🚀 ~ scheduleNotificationWithCron ~ results:", results);
-      console.log("🚀 ~ scheduleNotificationWithCron ~ errors:", errors);
+      console.log('Notification results:', { results, errors });
     });
-  } catch (err) {
-    console.error("❌ Failed to schedule notification:", err.message);
+  } catch (error) {
+    console.error('Failed to schedule notification:', error.message);
   }
 }
 
-export async function scheduleNotificationWithoutCron(message, tokens, deviceTokenIds) {
-  try {
-    const results = [];
-    const errors = [];
+// Send immediate notification
+async function scheduleNotificationWithoutCron(message, tokens, deviceTokenIds) {
+  const results = [];
+  const errors = [];
 
+  try {
     for (const token of tokens) {
       try {
         const response = await admin.messaging().send({ ...message, token });
         results.push({ token, success: true, response });
-        console.log(`✅ Notification sent to ${token}:`, response);
+        console.log(`Notification sent to ${token}`);
 
-        // Update device token count
         await DeviceToken.findOneAndUpdate(
           { token },
           { $inc: { count: 1 } },
           { upsert: true }
         );
-      } catch (err) {
-        errors.push({ token, error: err.message });
-        console.error(`❌ Failed to send to ${token}:`, err.message);
+      } catch (error) {
+        errors.push({ token, error: error.message });
+        console.error(`Failed to send to ${token}:`, error.message);
       }
     }
-
-    return { results, errors };
-  } catch (err) {
-    console.error("❌ Failed to send notification:", err.message);
-    return { results: [], errors: [{ error: err.message }] };
+  } catch (error) {
+    console.error('Failed to send notification:', error.message);
+    errors.push({ error: error.message });
   }
+
+  return { results, errors };
 }
 
+// Send group notification
 export const sendGroupNotification = async (req, res) => {
   const { title, body, groupName, NotificationTime } = req.body;
-  console.log("📦 Incoming Request:", req.body);
+  console.log('Group notification request:', req.body);
 
-  // 🛡 Input validation
+  // Input validation
   if (!title || !body || !groupName) {
     return res.status(400).json({
-      message: "Title, body, and groupName are required.",
+      message: 'Title, body, and groupName are required'
     });
   }
 
   try {
-    // Fetch group by groupName
-    const myTokens = await Group.find({ groupName });
-    if (!myTokens || myTokens.length === 0) {
+    // Fetch group tokens
+    const groups = await Group.find({ groupName });
+    if (!groups?.length) {
       return res.status(404).json({
-        message: `No group found with groupName: ${groupName}.`,
+        message: `No group found with groupName: ${groupName}`
       });
     }
 
-    const deviceTokenIds = myTokens[0].deviceTokens.map((id) => id.toString());
+    const deviceTokenIds = groups[0].deviceTokens.map(id => id.toString());
     const userTokenDocs = await DeviceToken.find({ _id: { $in: deviceTokenIds } });
 
-    if (!userTokenDocs || userTokenDocs.length === 0) {
+    if (!userTokenDocs?.length) {
       return res.status(404).json({
-        message: "No valid device tokens found for the group.",
+        message: 'No valid device tokens found for the group'
       });
     }
 
     const tokens = userTokenDocs
-      .filter((doc) => doc.token)
-      .map((doc) => doc.token);
+      .filter(doc => doc.token)
+      .map(doc => doc.token);
 
-    if (tokens.length === 0) {
+    if (!tokens.length) {
       return res.status(404).json({
-        message: "No valid device tokens found for the group.",
+        message: 'No valid device tokens found for the group'
       });
     }
 
-    // Parse NotificationTime or use current time
-    const notificationTime = NotificationTime
+    // Process notification time
+    const notificationTime = NotificationTime 
       ? convertDateTimeFormat(NotificationTime)
       : moment().utc().toDate();
 
-    // Save notification to database first
-    const sentNotification = new Notification({
+    // Save notification
+    const notification = new Notification({
       title,
       body,
       groupName,
       deviceTokens: deviceTokenIds,
       NotificationTime: notificationTime,
-      sent: false, // Always false initially, updated by cron job or immediate send
+      sent: false
     });
-    await sentNotification.save();
-    console.log("✅ Notification saved:", sentNotification);
+    await notification.save();
+    console.log('Notification saved:', notification);
 
-    // Convert NotificationTime to IST for response
     const notificationTimeIST = moment(notificationTime)
-      .tz("Asia/Kolkata")
-      .format("YYYY-MM-DD HH:mm");
+      .tz(IST_TIMEZONE)
+      .format('YYYY-MM-DD HH:mm');
 
-    const message = {
-      notification: {
-        title,
-        body,
-      },
-      android: {
-        priority: "high",
-      },
-      apns: {
-        payload: {
-          aps: {
-            sound: "default",
-            "content-available": 1,
-          },
-        },
-      },
-      webpush: {
-        notification: {
-          title,
-          body,
-          icon: "icon.png",
-        },
-        fcm_options: {
-          link: "https://yourwebsite.com",
-        },
-      },
-    };
+    const message = createNotificationMessage(title, body);
 
     if (!NotificationTime) {
-      // Send immediately
+      // Immediate send
       const { results, errors } = await scheduleNotificationWithoutCron(message, tokens, deviceTokenIds);
-      
-      // Update notification status
-      await Notification.findByIdAndUpdate(sentNotification._id, { sent: true });
+      await Notification.findByIdAndUpdate(notification._id, { sent: true });
 
       return res.status(200).json({
-        message: `Notification sent and saved successfully. ${results.length} succeeded, ${errors.length} failed.`,
-        notification: sentNotification,
-        sentAtIST: moment().tz("Asia/Kolkata").format("YYYY-MM-DD HH:mm"),
+        message: `Notification sent and saved successfully. ${results.length} succeeded, ${errors.length} failed`,
+        notification,
+        sentAtIST: moment().tz(IST_TIMEZONE).format('YYYY-MM-DD HH:mm'),
         firebaseResponse: {
           successCount: results.length,
           failureCount: errors.length,
-          errors,
-        },
-      });
-    } else {
-      // Schedule notification
-      const isInPast = moment(notificationTime).tz("Asia/Kolkata").isBefore(moment());
-      if (isInPast) {
-        console.log("⚠️ Scheduled time is in the past, notification not sent.");
-        return res.status(200).json({
-          message: "Notification saved but not sent (scheduled time in the past).",
-          notification: sentNotification,
-          scheduledNotificationTimeIST: notificationTimeIST,
-        });
-      }
-
-      await scheduleNotificationWithCron(notificationTime, message, tokens, sentNotification._id);
-      return res.status(200).json({
-        message: "Notification scheduled and saved successfully.",
-        notification: sentNotification,
-        scheduledNotificationTimeIST: notificationTimeIST,
+          errors
+        }
       });
     }
+
+    // Scheduled send
+    if (moment(notificationTime).tz(IST_TIMEZONE).isBefore(moment())) {
+      console.log('Scheduled time is in the past');
+      return res.status(200).json({
+        message: 'Notification saved but not sent (scheduled time in the past)',
+        notification,
+        scheduledNotificationTimeIST: notificationTimeIST
+      });
+    }
+
+    await scheduleNotificationWithCron(notificationTime, message, tokens, notification._id);
+    return res.status(200).json({
+      message: 'Notification scheduled and saved successfully',
+      notification,
+      scheduledNotificationTimeIST: notificationTimeIST
+    });
+
   } catch (error) {
-    console.error("❌ Error processing notification:", error);
-    res.status(500).json({
-      message: "Failed to process notification.",
-      error: error.message || error,
+    console.error('Error processing group notification:', error);
+    return res.status(500).json({
+      message: 'Failed to process notification',
+      error: error.message
     });
   }
 };
 
+// Send single notification
 export const sendSingleNotification = async (req, res) => {
   const { title, body, selectedIds, NotificationTime } = req.body;
-  console.log("📦 Request body:", req.body);
+  console.log('Single notification request:', req.body);
 
-  // 🛡 Input validation
-  if (!title || !body || !Array.isArray(selectedIds) || selectedIds.length === 0) {
+  // Input validation
+  if (!title || !body || !Array.isArray(selectedIds) || !selectedIds.length) {
     return res.status(400).json({
-      message: "Title, body, and a non-empty array of user IDs are required.",
+      message: 'Title, body, and a non-empty array of user IDs are required'
     });
   }
 
   try {
-    // Fetch device tokens
+    // Fetch tokens
     const userTokenDocs = await DeviceToken.find({ _id: { $in: selectedIds } });
 
-    if (!userTokenDocs || userTokenDocs.length === 0) {
+    if (!userTokenDocs?.length) {
       return res.status(404).json({
-        message: "No valid device tokens found for the provided IDs.",
+        message: 'No valid device tokens found for the provided IDs'
       });
     }
 
     const tokens = userTokenDocs
-      .filter((doc) => doc.token)
-      .map((doc) => doc.token);
+      .filter(doc => doc.token)
+      .map(doc => doc.token);
 
-    if (tokens.length === 0) {
+    if (!tokens.length) {
       return res.status(404).json({
-        message: "No valid device tokens found for the provided IDs.",
+        message: 'No valid device tokens found for the provided IDs'
       });
     }
 
-    // Parse NotificationTime or use current time
-    const notificationTime = NotificationTime
+    // Process notification time
+    const notificationTime = NotificationTime 
       ? convertDateTimeFormat(NotificationTime)
       : moment().utc().toDate();
 
-    // Save notification to database first
+    // Save notification
     const notification = new Notification({
       title,
       body,
-      groupName: selectedIds.join(','), // Store selectedIds as groupName for simplicity
+      groupName: selectedIds.join(','),
       deviceTokens: selectedIds,
       NotificationTime: notificationTime,
-      sent: false, // Always false initially, updated by cron job or immediate send
+      sent: false
     });
     await notification.save();
-    console.log("✅ Notification saved:", notification);
+    console.log('Notification saved:', notification);
 
-    // Convert NotificationTime to IST for response
     const notificationTimeIST = moment(notificationTime)
-      .tz("Asia/Kolkata")
-      .format("YYYY-MM-DD HH:mm");
+      .tz(IST_TIMEZONE)
+      .format('YYYY-MM-DD HH:mm');
 
-    const message = {
-      notification: {
-        title,
-        body,
-      },
-      android: {
-        priority: "high",
-      },
-      apns: {
-        payload: {
-          aps: {
-            sound: "default",
-            "content-available": 1,
-          },
-        },
-      },
-      webpush: {
-        notification: {
-          title,
-          body,
-          icon: "icon.png",
-        },
-        fcm_options: {
-          link: "https://yourwebsite.com",
-        },
-      },
-    };
+    const message = createNotificationMessage(title, body);
 
     if (!NotificationTime) {
-      // Send immediately
+      // Immediate send
       const { results, errors } = await scheduleNotificationWithoutCron(message, tokens, selectedIds);
-      
-      // Update notification status
       await Notification.findByIdAndUpdate(notification._id, { sent: true });
 
       return res.status(200).json({
-        message: `Notification sent and saved successfully. ${results.length} succeeded, ${errors.length} failed.`,
-        notification: notification,
-        sentAtIST: moment().tz("Asia/Kolkata").format("YYYY-MM-DD HH:mm"),
+        message: `Notification sent and saved successfully. ${results.length} succeeded, ${errors.length} failed`,
+        notification,
+        sentAtIST: moment().tz(IST_TIMEZONE).format('YYYY-MM-DD HH:mm'),
         firebaseResponse: {
           successCount: results.length,
           failureCount: errors.length,
-          errors,
-        },
-      });
-    } else {
-      // Schedule notification
-      const isInPast = moment(notificationTime).tz("Asia/Kolkata").isBefore(moment());
-      if (isInPast) {
-        console.log("⚠️ Scheduled time is in the past, notification not sent.");
-        return res.status(200).json({
-          message: "Notification saved but not sent (scheduled time in the past).",
-          notification: notification,
-          scheduledNotificationTimeIST: notificationTimeIST,
-        });
-      }
-
-      await scheduleNotificationWithCron(notificationTime, message, tokens, notification._id);
-      return res.status(200).json({
-        message: "Notification scheduled and saved successfully.",
-        notification: notification,
-        scheduledNotificationTimeIST: notificationTimeIST,
+          errors
+        }
       });
     }
+
+    // Scheduled send
+    if (moment(notificationTime).tz(IST_TIMEZONE).isBefore(moment())) {
+      console.log('Scheduled time is in the past');
+      return res.status(200).json({
+        message: 'Notification saved but not sent (scheduled time in the past)',
+        notification,
+        scheduledNotificationTimeIST: notificationTimeIST
+      });
+    }
+
+    await scheduleNotificationWithCron(notificationTime, message, tokens, notification._id);
+    return res.status(200).json({
+      message: 'Notification scheduled and saved successfully',
+      notification,
+      scheduledNotificationTimeIST: notificationTimeIST
+    });
+
   } catch (error) {
-    console.error("❌ Error processing notification:", error);
-    res.status(500).json({
-      message: "Failed to process notification.",
-      error: error.message || error,
+    console.error('Error processing single notification:', error);
+    return res.status(500).json({
+      message: 'Failed to process notification',
+      error: error.message
     });
   }
 };
+
+
+// function convertDateTimeFormat(input) {
+//   console.log("inside the function");
+
+//   try {
+//     // Parse input as UTC, supporting multiple formats
+//     const dateUTC = moment.utc(input, [
+//       moment.ISO_8601,
+//       "YYYY-MM-DDTHH:mm",
+//       "YYYY-MM-DD HH:mm",
+//     ], true);
+
+//     if (!dateUTC.isValid()) {
+//       throw new Error("Invalid date format");
+//     }
+
+//     // Convert to IST for logging (optional)
+//     const dateIST = moment(dateUTC).tz("Asia/Kolkata");
+
+//     // Subtract 5 hours 30 minutes
+//     const adjustedUTC = dateUTC.clone().subtract(5, "hours").subtract(30, "minutes");
+
+//     console.log("🚀 ~ convertDateTimeFormat ~ input:", input, 
+//                 "dateIST:", dateIST.format(), 
+//                 "adjustedUTC:", adjustedUTC.format());
+
+//     return adjustedUTC.toDate(); // Store as adjusted UTC in database
+//   } catch (error) {
+//     console.error("❌ Error parsing NotificationTime:", error.message);
+//     return moment().utc().toDate(); // Fallback to current UTC time
+//   }
+// }
+
+
+// export async function scheduleNotificationWithCron(scheduleDate, message, tokens, notificationId) {
+//   try {
+//     const dateIST = moment(scheduleDate).tz("Asia/Kolkata");
+//     // const dateIST = moment(scheduleDate).tz("Asia/Kolkata").subtract(5, "hours").subtract(30, "minutes");
+
+//     console.log("🚀 ~ scheduleNotificationWithCron ~ scheduling for:", dateIST.format());
+
+//     if (dateIST.isBefore(moment())) {
+//       console.log("⚠️ Scheduled time is in the past, notification not sent.");
+//       return;
+//     }
+
+//     const job = scheduleJob(dateIST.toDate(), async function () {
+//       const results = [];
+//       const errors = [];
+
+//       for (const token of tokens) {
+//         try {
+//           const response = await admin.messaging().send({ ...message, token });
+//           results.push({ token, success: true, response });
+//           console.log(`✅ Notification sent to ${token} at ${dateIST.format()}:`, response);
+
+//           // Update device token count
+//           await DeviceToken.findOneAndUpdate(
+//             { token },
+//             { $inc: { count: 1 } },
+//             { upsert: true }
+//           );
+//         } catch (err) {
+//           errors.push({ token, error: err.message });
+//           console.error(`❌ Failed to send to ${token}:`, err.message);
+//         }
+//       }
+
+//       // Update notification status
+//       await Notification.findByIdAndUpdate(notificationId, { sent: true });
+//       console.log("🚀 ~ scheduleNotificationWithCron ~ results:", results);
+//       console.log("🚀 ~ scheduleNotificationWithCron ~ errors:", errors);
+//     });
+//   } catch (err) {
+//     console.error("❌ Failed to schedule notification:", err.message);
+//   }
+// }
+
+// export async function scheduleNotificationWithoutCron(message, tokens, deviceTokenIds) {
+//   try {
+//     const results = [];
+//     const errors = [];
+
+//     for (const token of tokens) {
+//       try {
+//         const response = await admin.messaging().send({ ...message, token });
+//         results.push({ token, success: true, response });
+//         console.log(`✅ Notification sent to ${token}:`, response);
+
+//         // Update device token count
+//         await DeviceToken.findOneAndUpdate(
+//           { token },
+//           { $inc: { count: 1 } },
+//           { upsert: true }
+//         );
+//       } catch (err) {
+//         errors.push({ token, error: err.message });
+//         console.error(`❌ Failed to send to ${token}:`, err.message);
+//       }
+//     }
+
+//     return { results, errors };
+//   } catch (err) {
+//     console.error("❌ Failed to send notification:", err.message);
+//     return { results: [], errors: [{ error: err.message }] };
+//   }
+// }
+
+// export const sendGroupNotification = async (req, res) => {
+//   const { title, body, groupName, NotificationTime } = req.body;
+//   console.log("📦 Incoming Request:", req.body);
+
+//   // 🛡 Input validation
+//   if (!title || !body || !groupName) {
+//     return res.status(400).json({
+//       message: "Title, body, and groupName are required.",
+//     });
+//   }
+
+//   try {
+//     // Fetch group by groupName
+//     const myTokens = await Group.find({ groupName });
+//     if (!myTokens || myTokens.length === 0) {
+//       return res.status(404).json({
+//         message: `No group found with groupName: ${groupName}.`,
+//       });
+//     }
+
+//     const deviceTokenIds = myTokens[0].deviceTokens.map((id) => id.toString());
+//     const userTokenDocs = await DeviceToken.find({ _id: { $in: deviceTokenIds } });
+
+//     if (!userTokenDocs || userTokenDocs.length === 0) {
+//       return res.status(404).json({
+//         message: "No valid device tokens found for the group.",
+//       });
+//     }
+
+//     const tokens = userTokenDocs
+//       .filter((doc) => doc.token)
+//       .map((doc) => doc.token);
+
+//     if (tokens.length === 0) {
+//       return res.status(404).json({
+//         message: "No valid device tokens found for the group.",
+//       });
+//     }
+
+//     // Parse NotificationTime or use current time
+//     const notificationTime = NotificationTime
+//       ? convertDateTimeFormat(NotificationTime)
+//       : moment().utc().toDate();
+
+//     // Save notification to database first
+//     const sentNotification = new Notification({
+//       title,
+//       body,
+//       groupName,
+//       deviceTokens: deviceTokenIds,
+//       NotificationTime: notificationTime,
+//       sent: false, // Always false initially, updated by cron job or immediate send
+//     });
+//     await sentNotification.save();
+//     console.log("✅ Notification saved:", sentNotification);
+
+//     // Convert NotificationTime to IST for response
+//     const notificationTimeIST = moment(notificationTime)
+//       .tz("Asia/Kolkata")
+//       .format("YYYY-MM-DD HH:mm");
+
+//     const message = {
+//       notification: {
+//         title,
+//         body,
+//       },
+//       android: {
+//         priority: "high",
+//       },
+//       apns: {
+//         payload: {
+//           aps: {
+//             sound: "default",
+//             "content-available": 1,
+//           },
+//         },
+//       },
+//       webpush: {
+//         notification: {
+//           title,
+//           body,
+//           icon: "icon.png",
+//         },
+//         fcm_options: {
+//           link: "https://yourwebsite.com",
+//         },
+//       },
+//     };
+
+//     if (!NotificationTime) {
+//       // Send immediately
+//       const { results, errors } = await scheduleNotificationWithoutCron(message, tokens, deviceTokenIds);
+      
+//       // Update notification status
+//       await Notification.findByIdAndUpdate(sentNotification._id, { sent: true });
+
+//       return res.status(200).json({
+//         message: `Notification sent and saved successfully. ${results.length} succeeded, ${errors.length} failed.`,
+//         notification: sentNotification,
+//         sentAtIST: moment().tz("Asia/Kolkata").format("YYYY-MM-DD HH:mm"),
+//         firebaseResponse: {
+//           successCount: results.length,
+//           failureCount: errors.length,
+//           errors,
+//         },
+//       });
+//     } else {
+//       // Schedule notification
+//       const isInPast = moment(notificationTime).tz("Asia/Kolkata").isBefore(moment());
+//       if (isInPast) {
+//         console.log("⚠️ Scheduled time is in the past, notification not sent.");
+//         return res.status(200).json({
+//           message: "Notification saved but not sent (scheduled time in the past).",
+//           notification: sentNotification,
+//           scheduledNotificationTimeIST: notificationTimeIST,
+//         });
+//       }
+
+//       await scheduleNotificationWithCron(notificationTime, message, tokens, sentNotification._id);
+//       return res.status(200).json({
+//         message: "Notification scheduled and saved successfully.",
+//         notification: sentNotification,
+//         scheduledNotificationTimeIST: notificationTimeIST,
+//       });
+//     }
+//   } catch (error) {
+//     console.error("❌ Error processing notification:", error);
+//     res.status(500).json({
+//       message: "Failed to process notification.",
+//       error: error.message || error,
+//     });
+//   }
+// };
+
+// export const sendSingleNotification = async (req, res) => {
+//   const { title, body, selectedIds, NotificationTime } = req.body;
+//   console.log("📦 Request body:", req.body);
+
+//   // 🛡 Input validation
+//   if (!title || !body || !Array.isArray(selectedIds) || selectedIds.length === 0) {
+//     return res.status(400).json({
+//       message: "Title, body, and a non-empty array of user IDs are required.",
+//     });
+//   }
+
+//   try {
+//     // Fetch device tokens
+//     const userTokenDocs = await DeviceToken.find({ _id: { $in: selectedIds } });
+
+//     if (!userTokenDocs || userTokenDocs.length === 0) {
+//       return res.status(404).json({
+//         message: "No valid device tokens found for the provided IDs.",
+//       });
+//     }
+
+//     const tokens = userTokenDocs
+//       .filter((doc) => doc.token)
+//       .map((doc) => doc.token);
+
+//     if (tokens.length === 0) {
+//       return res.status(404).json({
+//         message: "No valid device tokens found for the provided IDs.",
+//       });
+//     }
+
+//     // Parse NotificationTime or use current time
+//     const notificationTime = NotificationTime
+//       ? convertDateTimeFormat(NotificationTime)
+//       : moment().utc().toDate();
+
+//     // Save notification to database first
+//     const notification = new Notification({
+//       title,
+//       body,
+//       groupName: selectedIds.join(','), // Store selectedIds as groupName for simplicity
+//       deviceTokens: selectedIds,
+//       NotificationTime: notificationTime,
+//       sent: false, // Always false initially, updated by cron job or immediate send
+//     });
+//     await notification.save();
+//     console.log("✅ Notification saved:", notification);
+
+//     // Convert NotificationTime to IST for response
+//     const notificationTimeIST = moment(notificationTime)
+//       .tz("Asia/Kolkata")
+//       .format("YYYY-MM-DD HH:mm");
+
+//     const message = {
+//       notification: {
+//         title,
+//         body,
+//       },
+//       android: {
+//         priority: "high",
+//       },
+//       apns: {
+//         payload: {
+//           aps: {
+//             sound: "default",
+//             "content-available": 1,
+//           },
+//         },
+//       },
+//       webpush: {
+//         notification: {
+//           title,
+//           body,
+//           icon: "icon.png",
+//         },
+//         fcm_options: {
+//           link: "https://yourwebsite.com",
+//         },
+//       },
+//     };
+
+//     if (!NotificationTime) {
+//       // Send immediately
+//       const { results, errors } = await scheduleNotificationWithoutCron(message, tokens, selectedIds);
+      
+//       // Update notification status
+//       await Notification.findByIdAndUpdate(notification._id, { sent: true });
+
+//       return res.status(200).json({
+//         message: `Notification sent and saved successfully. ${results.length} succeeded, ${errors.length} failed.`,
+//         notification: notification,
+//         sentAtIST: moment().tz("Asia/Kolkata").format("YYYY-MM-DD HH:mm"),
+//         firebaseResponse: {
+//           successCount: results.length,
+//           failureCount: errors.length,
+//           errors,
+//         },
+//       });
+//     } else {
+//       // Schedule notification
+//       const isInPast = moment(notificationTime).tz("Asia/Kolkata").isBefore(moment());
+//       if (isInPast) {
+//         console.log("⚠️ Scheduled time is in the past, notification not sent.");
+//         return res.status(200).json({
+//           message: "Notification saved but not sent (scheduled time in the past).",
+//           notification: notification,
+//           scheduledNotificationTimeIST: notificationTimeIST,
+//         });
+//       }
+
+//       await scheduleNotificationWithCron(notificationTime, message, tokens, notification._id);
+//       return res.status(200).json({
+//         message: "Notification scheduled and saved successfully.",
+//         notification: notification,
+//         scheduledNotificationTimeIST: notificationTimeIST,
+//       });
+//     }
+//   } catch (error) {
+//     console.error("❌ Error processing notification:", error);
+//     res.status(500).json({
+//       message: "Failed to process notification.",
+//       error: error.message || error,
+//     });
+//   }
+// };
 
 export const saveAndSubscribeToken = async (req, res) => {
   const { token, id } = req.body;
