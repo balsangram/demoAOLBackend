@@ -5,10 +5,9 @@ import Group from "../../models/notification/Group.model.js";
 import Notification from "../../models/notification/Notification.model.js";
 import { CronJob } from "cron";
 
-import schedule from "node-schedule";
-import { log } from "node:console";
-
 function convertDateTimeFormat(input) {
+  console.log("inside the function");
+  
   try {
     // Parse input as UTC, supporting multiple formats
     const dateUTC = moment.utc(input, [
@@ -363,8 +362,6 @@ export const sendSingleNotification = async (req, res) => {
     });
   }
 };
-
-
 
 export const saveAndSubscribeToken = async (req, res) => {
   const { token, id } = req.body;
