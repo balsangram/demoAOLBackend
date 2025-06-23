@@ -51,16 +51,52 @@ function createNotificationMessage(title, body) {
 }
 
 // Schedule notification with cron
-async function scheduleNotificationWithCron(scheduleDate, message, tokens, notificationId) {
-  console.log(scheduleDate,"scheduleDate 😁");
+// async function scheduleNotificationWithCron(scheduleDate, message, tokens, notificationId) {
+//   console.log(scheduleDate,"scheduleDate 😁");
   
-  try {
-    const dateIST = scheduleDate;
-    // const dateIST = moment(scheduleDate).tz("Asia/Kolkata");
-    // console.log('Scheduling notification for:', dateIST.format());
+//   try {
+//     const dateIST = scheduleDate;
+//     // const dateIST = moment(scheduleDate).tz("Asia/Kolkata");
+//     // console.log('Scheduling notification for:', dateIST.format());
 
-    if (dateIST.isBefore(moment())) {
-      console.log('Scheduled time is in the past, notification not scheduled');
+//     if (dateIST.isBefore(moment())) {
+//       console.log('Scheduled time is in the past, notification not scheduled');
+//       return;
+//     }
+
+//     scheduleJob(dateIST.toDate(), async () => {
+//       const results = [];
+//       const errors = [];
+
+//       for (const token of tokens) {
+//         try {
+//           const response = await admin.messaging().send({ ...message, token });
+//           results.push({ token, success: true, response });
+//           // console.log(`Notification sent to ${token} at ${dateIST.format()}`);
+
+//           await DeviceToken.findOneAndUpdate(
+//             { token },
+//             { $inc: { count: 1 } },
+//             { upsert: true }
+//           );
+//         } catch (error) {
+//           errors.push({ token, error: error.message });
+//           console.error(`Failed to send to ${token}:`, error.message);
+//         }
+//       }
+
+//       await Notification.findByIdAndUpdate(notificationId, { sent: true });
+//       console.log('Notification results:', { results, errors });
+//     });
+//   } catch (error) {
+//     console.error('Failed to schedule notification:', error.message);
+//   }
+// }
+async function scheduleNotificationWithCron(scheduleDate, message, tokens, notificationId) {
+  try {
+    const dateIST = moment(scheduleDate).tz("Asia/Kolkata");
+    if (dateIST.isBefore(moment().tz("Asia/Kolkata").add(5, "seconds"))) {
+      console.log("Scheduled time is in the past, notification not scheduled");
       return;
     }
 
@@ -72,8 +108,6 @@ async function scheduleNotificationWithCron(scheduleDate, message, tokens, notif
         try {
           const response = await admin.messaging().send({ ...message, token });
           results.push({ token, success: true, response });
-          // console.log(`Notification sent to ${token} at ${dateIST.format()}`);
-
           await DeviceToken.findOneAndUpdate(
             { token },
             { $inc: { count: 1 } },
@@ -81,15 +115,14 @@ async function scheduleNotificationWithCron(scheduleDate, message, tokens, notif
           );
         } catch (error) {
           errors.push({ token, error: error.message });
-          console.error(`Failed to send to ${token}:`, error.message);
         }
       }
 
       await Notification.findByIdAndUpdate(notificationId, { sent: true });
-      console.log('Notification results:', { results, errors });
+      console.log("Notification results:", { results, errors });
     });
   } catch (error) {
-    console.error('Failed to schedule notification:', error.message);
+    console.error("Failed to schedule notification:", error.message);
   }
 }
 
