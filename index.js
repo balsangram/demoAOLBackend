@@ -18,7 +18,7 @@ app.use(cors({ origin: "*", credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// app.use("/auth", authRoutes);
+// app.use("/auth", authRoutes)///;
 
 app.use("/aol", router);
 
