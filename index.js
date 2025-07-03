@@ -23,10 +23,10 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/aol", router);
 
 app.get("/", (req, res) => {
-  res.send("Hello, this project is Art Of Living 23-07-23:17:20 😊 [[");
+  res.send("Hello, this project is Art Of Living 23-07-23:17:20 😊 **");
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 const startServer = async () => {
   try {
     await connectDB(); // Wait for the database connection
