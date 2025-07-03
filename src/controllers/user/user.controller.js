@@ -203,9 +203,13 @@ export const updateDetails = async (req, res) => {
 
 export const loginUser = async (req, res) => {
   try {
-    const { email, phone, country_code, token } = req.body;
+    let { email, phone, country_code, token } = req.body;
     console.log("🚀 ~ loginUser ~ req.body:", req.body);
-
+console.log("email", email);
+  if (email) {
+  email = email.trim().toLowerCase();
+}
+console.log("email", email);
     // Validate required fields
     if (!email && !phone) {
       return res.status(400).json({
