@@ -373,115 +373,103 @@ export const sendSingleNotification = async (req, res) => {
   }
 };
 
-export const sendNotificationToAll = async (req, res) => {
-  const { title, body, NotificationTime } = req.body;
-
-  if (!title || !body) {
-    return res.status(400).json({ message: "Title and body are required" });
-  }
-
-  const message = {
-    topic: "all",
-    notification: {
-      title,
-      body,
-    },
-    android: {
-      priority: "high",
-    },
+function createNotificationMessageToAll(title, body) {
+  return {
+    topic: "all", // Send to all subscribed to this topic
+    notification: { title, body },
+    android: { priority: 'high' },
     apns: {
       payload: {
         aps: {
-          sound: "default",
-        },
-      },
+          sound: 'default',
+          'content-available': 1
+        }
+      }
     },
+    webpush: {
+      notification: { title, body, icon: 'icon.png' },
+      fcm_options: { link: 'https://yourwebsite.com' }
+    }
   };
+}
+
+export const sendNotificationToAll = async (req, res) => {
+  let { title, body, NotificationTime } = req.body;
+  console.log('Broadcast notification request:', req.body);
+
+  if (!title || !body) {
+    return res.status(400).json({
+      message: 'Title and body are required'
+    });
+  }
 
   try {
-    const now = new Date();
-    let cronTime = "* * * * * *";
-    // If NotificationTime is not given, send immediately
-    let nowTime = new Date();
-    if (NotificationTime) {
-      nowTime = new Date(NotificationTime);
+    const notificationTime = NotificationTime 
+      ? convertDateTimeFormat(NotificationTime)
+      : moment().tz(IST_TIMEZONE).toDate();
 
-      const minute = nowTime.getMinutes();
-      const hour = nowTime.getHours();
-      const day = nowTime.getDate();
-      const month = nowTime.getMonth() + 1;
-      cronTime = `${minute} ${hour} ${day} ${month} *`;
-
-      if (nowTime < now) {
-        return res.status(400).json({
-          message: "NotificationTime must be in the future.",
-        });
-      }
-    }
-    console.log("🚀 ~ sendNotificationToAll ~ cronTime:", NotificationTime);
-    let sentNotification = new Notification({
+    const notification = new Notification({
       title,
       body,
-      status: "sent",
-      sentAt: nowTime,
-      NotificationTime: NotificationTime || nowTime,
+      groupName: "ALL",
+      deviceTokens: [], // no individual tokens needed
+      NotificationTime: notificationTime,
+      sent: false
     });
+    await notification.save();
 
-    if (now < nowTime) {
-      const job = new CronJob(
-        cronTime,
-        async function () {
-          console.log("inside the cron job to sedn notification to all api");
-          await admin.messaging().send(message);
-          // await sentNotification.save();
+    const message = createNotificationMessageToAll(title, body);
+    const notificationTimeIST = moment(notificationTime)
+      .tz(IST_TIMEZONE)
+      .format('YYYY-MM-DD HH:mm');
 
-          // ✅ Increment count for all users
-          const result = await DeviceToken.updateMany(
-            {},
-            { $inc: { count: 1 } }
-          );
-          console.log("📈 Device count updated for all users:", result);
+    if (!NotificationTime) {
+      const response = await admin.messaging().send(message);
 
-          job.stop();
-        },
-        null,
-        true,
-        "Asia/Kolkata"
-      );
-    } else {
-      await admin.messaging().send(message);
-      // await sentNotification.save();
-      const result = await DeviceToken.updateMany({}, { $inc: { count: 1 } });
-      console.log("📈 Device count updated for all users:", result);
+      await Notification.findByIdAndUpdate(notification._id, { sent: true });
+
+      return res.status(200).json({
+        message: `Notification sent to topic 'all'`,
+        notification,
+        firebaseResponse: response,
+        sentAtIST: moment().tz(IST_TIMEZONE).format('YYYY-MM-DD HH:mm')
+      });
     }
 
-    await sentNotification.save();
-    // Return response
-    const istFormatter = new Intl.DateTimeFormat("en-IN", {
-      timeZone: "Asia/Kolkata",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
+    // Schedule if future
+    if (moment(notificationTime).tz(IST_TIMEZONE).isBefore(moment())) {
+      return res.status(200).json({
+        message: 'Notification saved but not sent (scheduled time in the past)',
+        notification,
+        scheduledNotificationTimeIST: notificationTimeIST
+      });
+    }
+
+    await scheduleJob(notificationTime, async () => {
+      try {
+        const response = await admin.messaging().send(message);
+        await Notification.findByIdAndUpdate(notification._id, { sent: true });
+        console.log('Scheduled topic notification sent:', response);
+      } catch (err) {
+        console.error('Error sending scheduled topic notification:', err.message);
+      }
     });
 
-    res.status(200).json({
-      message: "Notification scheduled successfully.",
-      scheduledTimeIST: istFormatter.format(nowTime),
-      currentTimeIST: istFormatter.format(now),
-      notification: sentNotification,
+    return res.status(200).json({
+      message: 'Notification to topic "all" scheduled successfully',
+      notification,
+      scheduledNotificationTimeIST: notificationTimeIST
     });
+
   } catch (error) {
-    console.error("❌ Error processing notification:", error);
-
-    res.status(500).json({
-      message: "Failed to process notification.",
-      error: error.message || error,
+    console.error('Error processing broadcast notification:', error);
+    return res.status(500).json({
+      message: 'Failed to send broadcast notification',
+      error: error.message
     });
   }
 };
+
 
 export const saveAndSubscribeToken = async (req, res) => {
   const { token, id } = req.body;
